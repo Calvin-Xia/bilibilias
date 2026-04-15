@@ -38,7 +38,6 @@ import com.imcys.bilibilias.common.event.restoreBackStackEventFlow
 import com.imcys.bilibilias.common.event.saveBackStackChannel
 import com.imcys.bilibilias.data.repository.AppSettingsRepository
 import com.imcys.bilibilias.ui.analysis.AnalysisScreen
-import com.imcys.bilibilias.ui.analysis.AnalysisViewModel
 import com.imcys.bilibilias.ui.analysis.navigation.AnalysisRoute
 import com.imcys.bilibilias.ui.analysis.videocodeing.VideoCodingInfoRoute
 import com.imcys.bilibilias.ui.analysis.videocodeing.VideoCodingInfoScreen
@@ -289,10 +288,8 @@ fun BILIBILAISNavDisplay() {
                     )
                 }
                 entry<AnalysisRoute> {
-                    val vm = koinViewModel<AnalysisViewModel>(key = it.toString())
                     AnalysisScreen(
                         it,
-                        vm,
                         this@SharedTransitionLayout,
                         LocalNavAnimatedContentScope.current,
                         onToBack = onBack,

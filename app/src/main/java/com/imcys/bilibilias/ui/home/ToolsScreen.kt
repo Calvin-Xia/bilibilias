@@ -72,13 +72,19 @@ import com.imcys.bilibilias.ui.weight.tip.ASInfoTip
 import kotlinx.coroutines.launch
 
 @Composable
-fun ToolsScreen(vm: HomeViewModel, onToPage: (NavKey) -> Unit) {
+fun ToolsScreen(
+    onToPage: (NavKey) -> Unit,
+    onUpdateUseToolRecord: (ToolInfo) -> Unit
+) {
     Column(
         Modifier
             .padding(horizontal = 15.dp)
             .padding(top = 10.dp),
     ) {
-        ToolsContent(vm, onToPage)
+        ToolsContent(
+            onToPage = onToPage,
+            onUpdateUseToolRecord = onUpdateUseToolRecord
+        )
     }
 }
 
@@ -127,7 +133,10 @@ enum class ToolInfo(
 }
 
 @Composable
-private fun ToolsContent(vm: HomeViewModel, onToPage: (NavKey) -> Unit) {
+private fun ToolsContent(
+    onToPage: (NavKey) -> Unit,
+    onUpdateUseToolRecord: (ToolInfo) -> Unit
+) {
 
     var showFeedbackDialog by remember { mutableStateOf(false) }
 
@@ -150,7 +159,7 @@ private fun ToolsContent(vm: HomeViewModel, onToPage: (NavKey) -> Unit) {
 
     // 点击工具处理
     fun clickTool(toolInfo: ToolInfo) {
-        vm.updateUseToolRecord(toolInfo)
+        onUpdateUseToolRecord(toolInfo)
         when (toolInfo) {
             ToolInfo.Feedback -> {
                 showFeedbackDialog = true
@@ -172,7 +181,7 @@ private fun ToolsContent(vm: HomeViewModel, onToPage: (NavKey) -> Unit) {
         ) {
             Text(stringResource(R.string.tools_video_processing))
         }
-        items(videoTools) {
+        items(videoTools, key = { it.name }) {
             ToolCard(it, onClick = {
                 clickTool(it)
             })
@@ -183,7 +192,7 @@ private fun ToolsContent(vm: HomeViewModel, onToPage: (NavKey) -> Unit) {
         ) {
             Text(stringResource(R.string.tools_parser_tools))
         }
-        items(parserTools) {
+        items(parserTools, key = { it.name }) {
             ToolCard(it, onClick = {
                 clickTool(it)
             })
@@ -193,7 +202,7 @@ private fun ToolsContent(vm: HomeViewModel, onToPage: (NavKey) -> Unit) {
             Text(stringResource(R.string.tools_other))
         }
 
-        items(otherTools) {
+        items(otherTools, key = { it.name }) {
             ToolCard(it, onClick = {
                 clickTool(it)
             })

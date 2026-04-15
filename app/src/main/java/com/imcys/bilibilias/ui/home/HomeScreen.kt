@@ -59,7 +59,7 @@ import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -137,13 +137,13 @@ internal fun HomeScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val vm = koinViewModel<HomeViewModel>()
-    val uiState by vm.uiState.collectAsState()
-    val loginUserInfoState by vm.loginUserInfoState.collectAsState()
-    val userLoginPlatformList by vm.userLoginPlatformList.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
+    val loginUserInfoState by vm.loginUserInfoState.collectAsStateWithLifecycle()
+    val userLoginPlatformList by vm.userLoginPlatformList.collectAsStateWithLifecycle()
     var popupUserInfoState by remember { mutableStateOf(false) }
     val windowHeightSizeClass = rememberHeightSizeClass()
-    val downloadListState by vm.downloadListState.collectAsState()
-    val appSettings by vm.appSettings.collectAsState(initial = AppSettings.getDefaultInstance())
+    val downloadListState by vm.downloadListState.collectAsStateWithLifecycle()
+    val appSettings by vm.appSettings.collectAsStateWithLifecycle(initialValue = AppSettings.getDefaultInstance())
     val windowsWidthSizeClass = rememberWidthSizeClass()
 
 
@@ -165,7 +165,7 @@ internal fun HomeScreen(
         }
     }
 
-    val homeLayoutTypesetList by vm.homeLayoutTypesetList.collectAsState()
+    val homeLayoutTypesetList by vm.homeLayoutTypesetList.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState(pageCount = { 2 })
     val pagerScope = rememberCoroutineScope()
     BackHandler(enabled = pagerState.currentPage > 0) {
@@ -197,7 +197,6 @@ internal fun HomeScreen(
                     when (page) {
                         0 -> {
                             HomeContent(
-                                vm,
                                 homeLayoutTypesetList,
                                 downloadListState,
                                 goToDownloadPage,
@@ -206,7 +205,10 @@ internal fun HomeScreen(
                         }
 
                         1 -> {
-                            ToolsScreen(vm, goToPage)
+                            ToolsScreen(
+                                onToPage = goToPage,
+                                onUpdateUseToolRecord = vm::updateUseToolRecord
+                            )
                         }
                     }
                 }
@@ -313,20 +315,20 @@ internal fun HomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeContent(
-    vm: HomeViewModel,
     homeLayoutTypesetList: List<AppSettings.HomeLayoutItem>,
     downloadListState: List<AppDownloadTask>,
     goToDownloadPage: () -> Unit,
     goToPage: (NavKey) -> Unit
 ) {
+    val vm = koinViewModel<HomeViewModel>()
 
-    val bannerList by vm.bannerList.collectAsState()
-    val bulletinInfo by vm.bulletinInfo.collectAsState()
-    val appSettings by vm.appSettingsState.collectAsState()
-    val appUpdateInfo by vm.appUpdateInfo.collectAsState()
-    val useToolHistoryList by vm.useToolHistoryList.collectAsState()
+    val bannerList by vm.bannerList.collectAsStateWithLifecycle()
+    val bulletinInfo by vm.bulletinInfo.collectAsStateWithLifecycle()
+    val appSettings by vm.appSettingsState.collectAsStateWithLifecycle()
+    val appUpdateInfo by vm.appUpdateInfo.collectAsStateWithLifecycle()
+    val useToolHistoryList by vm.useToolHistoryList.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val uiState by vm.uiState.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
     val windowsWidthSizeClass = rememberWidthSizeClass()
     val windowHeightSizeClass = rememberHeightSizeClass()
     val toolsHistoryCount = when (windowsWidthSizeClass) {

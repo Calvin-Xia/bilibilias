@@ -27,7 +27,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,8 +67,8 @@ fun ParsePlatformScreen(parsePlatformRoute: ParsePlatformRoute, onToBack: () -> 
 @Composable
 private fun ParsePlatformContent(modifier: Modifier = Modifier) {
     val vm = koinViewModel<ParsePlatformViewModel>()
-    val uiState by vm.uiState.collectAsState()
-    val useParsePlatform by vm.useParsePlatform.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
+    val useParsePlatform by vm.useParsePlatform.collectAsStateWithLifecycle()
 
     AnimatedContent(uiState) { state ->
         when (state) {

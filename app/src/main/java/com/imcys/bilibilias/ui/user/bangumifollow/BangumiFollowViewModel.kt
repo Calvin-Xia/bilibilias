@@ -1,5 +1,6 @@
 package com.imcys.bilibilias.ui.user.bangumifollow
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
@@ -18,6 +19,7 @@ class BangumiFollowViewModel(
     private val userInfoRepository: UserInfoRepository
 ) : ViewModel() {
 
+    @Immutable
     data class UIState(
         val mid: Long = 0L,
     )

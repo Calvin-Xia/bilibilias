@@ -38,7 +38,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -108,10 +108,10 @@ fun SettingScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val context = LocalContext.current
     val vm = koinViewModel<SettingViewModel>()
-    val appSettings by vm.appSettings.collectAsState(initial = AppSettings.getDefaultInstance())
+    val appSettings by vm.appSettings.collectAsStateWithLifecycle(initialValue = AppSettings.getDefaultInstance())
     val haptics = LocalHapticFeedback.current
     var showLogoutDialog by remember { mutableStateOf(false) }
-    val uiState by vm.uiState.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
     var showLogoutLoading by remember { mutableStateOf(false) }
     var showPrivacyPolicy by remember { mutableStateOf(false) }

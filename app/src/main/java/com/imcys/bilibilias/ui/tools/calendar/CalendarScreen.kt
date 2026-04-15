@@ -32,7 +32,7 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,7 +86,7 @@ fun CalendarScreen(
 private fun CalendarContent(modifier: Modifier, onToSubjectDetail: (Long) -> Unit) {
     var showTabRow by remember { mutableStateOf(true) }
     val vm = koinViewModel<CalendarViewModel>()
-    val calendarData by vm.calendarData.collectAsState()
+    val calendarData by vm.calendarData.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState(pageCount = { calendarData.data?.size ?: 0 })
     val pagerScope = rememberCoroutineScope()
 

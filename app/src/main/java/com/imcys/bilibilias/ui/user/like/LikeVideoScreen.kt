@@ -17,11 +17,12 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.Immutable
 import androidx.navigation3.runtime.NavKey
 import com.imcys.bilibilias.common.utils.toHttps
 import com.imcys.bilibilias.network.ApiStatus
@@ -37,6 +38,7 @@ import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.koinViewModel
 
 @Serializable
+@Immutable
 data class LikeVideoRoute(val mid: Long,val type: LikePageType) : NavKey
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,7 +47,7 @@ fun LikeVideoScreen(likeVideoRoute: LikeVideoRoute, onToBack: () -> Unit) {
     val scrollBehavior =
         TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val vm = koinViewModel<LikeVideoViewModel>()
-    val likeVideoList by vm.likeVideoList.collectAsState()
+    val likeVideoList by vm.likeVideoList.collectAsStateWithLifecycle()
 
     LaunchedEffect(likeVideoRoute.mid,likeVideoRoute.type) {
         vm.initMid(likeVideoRoute.mid,likeVideoRoute.type)
@@ -53,7 +55,6 @@ fun LikeVideoScreen(likeVideoRoute: LikeVideoRoute, onToBack: () -> Unit) {
 
     LikeVideoScaffold(likeVideoRoute.type,scrollBehavior, onToBack = onToBack) { paddingValues ->
         LikeVideoContent(
-            vm,
             likeVideoList,
             paddingValues,
         )
@@ -62,7 +63,6 @@ fun LikeVideoScreen(likeVideoRoute: LikeVideoRoute, onToBack: () -> Unit) {
 
 @Composable
 fun LikeVideoContent(
-    vm: LikeVideoViewModel,
     likeVideoList: NetWorkResult<BILIUserVideoLikeInfo?>,
     paddingValues: PaddingValues
 ) {

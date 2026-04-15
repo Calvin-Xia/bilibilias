@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.Immutable
 import androidx.navigation3.runtime.NavKey
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
@@ -62,6 +63,7 @@ import org.koin.androidx.compose.koinViewModel
 
 
 @Serializable
+@Immutable
 data class BangumiFollowRoute(
     val mid: Long = 0L
 ) : NavKey
@@ -86,7 +88,6 @@ fun BangumiFollowScreen(
         onToBack = onToBack
     ) { paddingValues ->
         BangumiFollowContent(
-            vm = vm,
             paddingValues = paddingValues,
             items
         )
@@ -98,7 +99,6 @@ fun BangumiFollowScreen(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BangumiFollowContent(
-    vm: BangumiFollowViewModel,
     paddingValues: PaddingValues,
     itemList: LazyPagingItems<BILIUserBangumiFollowInfo.ItemData>
 ) {

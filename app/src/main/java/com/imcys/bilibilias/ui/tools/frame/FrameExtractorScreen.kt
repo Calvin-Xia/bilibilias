@@ -48,7 +48,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -99,7 +99,8 @@ fun FrameExtractorScreen(
 
 
     val vm = koinViewModel<FrameExtractorViewModel>()
-    val downloadList by vm.allDownloadSegment.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
+    val downloadList by vm.allDownloadSegment.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     var showSelectVideoModel by remember { mutableStateOf(false) }
@@ -119,7 +120,14 @@ fun FrameExtractorScreen(
             showSelectVideoModel = true
         }
     ) { paddingValues ->
-        FrameExtractorContent(vm, paddingValues)
+        FrameExtractorContent(
+            uiState = uiState,
+            onUpdateSelectFps = vm::updateSelectFps,
+            onExportFrameToImage = { saveUri ->
+                vm.exportFrameToImage(context = context, exportUri = saveUri)
+            },
+            paddingValues = paddingValues
+        )
     }
 
     SelectVideoModelDialog(showSelectVideoModel, onClose = {
@@ -151,7 +159,7 @@ fun SelectVideoListDialog(
                 modifier = Modifier.sizeIn(maxHeight = 600.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                items(downloadList) { item ->
+                items(downloadList, key = { it.segmentId }) { item ->
                     Surface(
                         shape = CardDefaults.shape,
                         modifier = Modifier.fillMaxWidth(),
@@ -284,10 +292,11 @@ fun SelectVideoModelDialog(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun FrameExtractorContent(
-    vm: FrameExtractorViewModel,
+    uiState: UIState,
+    onUpdateSelectFps: suspend (Int) -> Unit,
+    onExportFrameToImage: (String) -> Unit,
     paddingValues: PaddingValues
 ) {
-    val uiState by vm.uiState.collectAsState()
     Column(
         Modifier
             .fillMaxSize()
@@ -301,7 +310,11 @@ private fun FrameExtractorContent(
                 Text(stringResource(R.string.frame_select_video_prompt))
             }
 
-            is UIState.ImportSuccess -> ImportSuccessScreen(state, vm)
+            is UIState.ImportSuccess -> ImportSuccessScreen(
+                state = state,
+                onUpdateSelectFps = onUpdateSelectFps,
+                onExportFrameToImage = onExportFrameToImage
+            )
             is UIState.Importing -> {
                 Column(
                     Modifier.fillMaxSize(),
@@ -344,10 +357,13 @@ private fun FrameExtractorContent(
 
 
 @Composable
-fun ImportSuccessScreen(state: UIState.ImportSuccess, vm: FrameExtractorViewModel) {
+fun ImportSuccessScreen(
+    state: UIState.ImportSuccess,
+    onUpdateSelectFps: suspend (Int) -> Unit,
+    onExportFrameToImage: (String) -> Unit
+) {
     // 协程
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
     Column(
         modifier = Modifier.verticalScroll(rememberScrollState())
 
@@ -369,12 +385,12 @@ fun ImportSuccessScreen(state: UIState.ImportSuccess, vm: FrameExtractorViewMode
         // 选择帧率组件
         SelectFpsItem(state.selectFps, state.videoFps, {
             scope.launch {
-                vm.updateSelectFps(currentFps = it)
+                onUpdateSelectFps(it)
             }
         }, 1..state.videoFps)
         Spacer(Modifier.height(10.dp))
         ExportFpsButton(onExport = {
-            vm.exportFrameToImage(context = context,it)
+            onExportFrameToImage(it)
         })
     }
 }

@@ -1,5 +1,6 @@
 package com.imcys.bilibilias.ui.user.folder
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
@@ -22,6 +23,7 @@ import kotlinx.coroutines.launch
 class UserFolderViewModel(
     private val userInfoRepository: UserInfoRepository
 ) : ViewModel() {
+    @Immutable
     data class UIState(
         val mid: Long = 0L,
         val currentMediaId: Long = 0L

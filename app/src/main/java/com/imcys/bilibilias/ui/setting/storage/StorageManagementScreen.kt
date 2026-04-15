@@ -32,7 +32,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -90,7 +90,7 @@ fun StorageManagementContent(
 ) {
     val context = LocalContext.current
     val vm = koinViewModel<StorageManagementViewModel>()
-    val uiState by vm.uiState.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {

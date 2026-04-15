@@ -67,7 +67,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -135,6 +135,7 @@ import com.imcys.bilibilias.weight.AsAutoError
 import com.imcys.bilibilias.weight.AsUserInfoRow
 import com.imcys.bilibilias.weight.dialog.PermissionRequestTipDialog
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 
 private typealias SendIntent = (AnalysisIntent) -> Unit
 
@@ -142,7 +143,6 @@ private typealias SendIntent = (AnalysisIntent) -> Unit
 @Composable
 fun AnalysisScreen(
     analysisRoute: AnalysisRoute,
-    vm: AnalysisViewModel,
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
     onToBack: () -> Unit,
@@ -150,11 +150,14 @@ fun AnalysisScreen(
     onToVideoCodingInfo: () -> Unit,
     onToLogin: () -> Unit
 ) {
+    val vm = koinViewModel<AnalysisViewModel>(key = analysisRoute.toString())
 
-    val uiState by vm.uiState.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
     val isSelectSingleModel = uiState.isSelectSingleModel
     val episodeListMode = uiState.episodeListMode
-    val appSettings by vm.appSettings.collectAsState(AppSettingsSerializer.appSettingsDefault)
+    val boostVideoInfo by vm.boostVideoInfo.collectAsStateWithLifecycle()
+    val appSettings by vm.appSettings.collectAsStateWithLifecycle(initialValue = AppSettingsSerializer.appSettingsDefault)
+    val context = LocalContext.current
     val windowsWidthSize = rememberWidthSizeClass()
 
     LaunchedEffect(analysisRoute.asInputText) {
@@ -220,35 +223,49 @@ fun AnalysisScreen(
                         when (targetState) {
                             WindowWidthSizeClass.Compact, WindowWidthSizeClass.Medium -> {
                                 VerticalAnalysisVideoCardList(
-                                    uiState.downloadInfo,
                                     type,
                                     uiState.isBILILogin,
                                     uiState.analysisBaseInfo,
+                                    boostVideoInfo = boostVideoInfo,
+                                    savePic = { vm.downloadImageToAlbum(context, it, "BILIBILIAS") },
                                     animatedContentScope = this@AnimatedContent,
                                     sharedTransitionScope = this@SharedTransitionLayout,
-                                    isSelectSingleModel = isSelectSingleModel,
-                                    episodeListMode = episodeListMode,
-                                    viewModel = vm,
                                     goToUser = goToUser,
-                                    onToVideoCodingInfo = onToVideoCodingInfo,
-                                    onToLogin = onToLogin
+                                    onToLogin = onToLogin,
+                                    downloadConfigContent = {
+                                        AnalysisDownloadConfigContent(
+                                            uiState.downloadInfo,
+                                            type,
+                                            isSelectSingleModel,
+                                            episodeListMode,
+                                            vm,
+                                            onToVideoCodingInfo
+                                        )
+                                    }
                                 )
                             }
 
                             else -> {
                                 HorizontalAnalysisVideoCardList(
-                                    uiState.downloadInfo,
                                     type,
                                     uiState.isBILILogin,
                                     uiState.analysisBaseInfo,
+                                    boostVideoInfo = boostVideoInfo,
+                                    savePic = { vm.downloadImageToAlbum(context, it, "BILIBILIAS") },
                                     animatedContentScope = this@AnimatedContent,
                                     sharedTransitionScope = this@SharedTransitionLayout,
-                                    isSelectSingleModel = isSelectSingleModel,
-                                    episodeListMode = episodeListMode,
-                                    viewModel = vm,
                                     goToUser = goToUser,
-                                    onToVideoCodingInfo = onToVideoCodingInfo,
-                                    onToLogin = onToLogin
+                                    onToLogin = onToLogin,
+                                    downloadConfigContent = {
+                                        AnalysisDownloadConfigContent(
+                                            uiState.downloadInfo,
+                                            type,
+                                            isSelectSingleModel,
+                                            episodeListMode,
+                                            vm,
+                                            onToVideoCodingInfo
+                                        )
+                                    }
                                 )
                             }
                         }
@@ -337,22 +354,17 @@ fun CreateDownloadTaskLoadingDialog(show: Boolean) {
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ColumnScope.HorizontalAnalysisVideoCardList(
-    downloadInfo: DownloadViewInfo?,
     asLinkResultType: ASLinkResultType,
     isBILILogin: Boolean,
     analysisBaseInfo: AnalysisBaseInfo,
-    isSelectSingleModel: Boolean,
-    episodeListMode: AppSettings.EpisodeListMode,
-    viewModel: AnalysisViewModel,
+    boostVideoInfo: AppOldCommonBean?,
+    savePic: suspend (String?) -> Unit,
     goToUser: (Long) -> Unit,
-    onToVideoCodingInfo: () -> Unit,
     onToLogin: () -> Unit,
+    downloadConfigContent: @Composable () -> Unit,
     animatedContentScope: AnimatedContentScope,
     sharedTransitionScope: SharedTransitionScope,
 ) {
-    val boostVideoInfo by viewModel.boostVideoInfo.collectAsState()
-    val context = LocalContext.current
-
     Row(
         Modifier
             .padding(horizontal = 15.dp)
@@ -375,7 +387,7 @@ fun ColumnScope.HorizontalAnalysisVideoCardList(
                     )
                 ) {
                     AnalysisVideoCard(asLinkResultType, isBILILogin, analysisBaseInfo, savePic = {
-                        viewModel.downloadImageToAlbum(context, it, "BILIBILIAS")
+                        savePic(it)
                     }, goToUser, onToLogin, boostVideoInfo)
                     Spacer(Modifier.height(15.dp))
                 }
@@ -396,14 +408,7 @@ fun ColumnScope.HorizontalAnalysisVideoCardList(
                     .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                AnalysisDownloadConfigContent(
-                    downloadInfo,
-                    asLinkResultType,
-                    isSelectSingleModel,
-                    episodeListMode,
-                    viewModel,
-                    onToVideoCodingInfo
-                )
+                downloadConfigContent()
 
                 Spacer(Modifier.height(15.dp))
             }
@@ -417,22 +422,17 @@ fun ColumnScope.HorizontalAnalysisVideoCardList(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ColumnScope.VerticalAnalysisVideoCardList(
-    downloadInfo: DownloadViewInfo?,
     asLinkResultType: ASLinkResultType,
     isBILILogin: Boolean,
     analysisBaseInfo: AnalysisBaseInfo,
-    isSelectSingleModel: Boolean,
-    episodeListMode: AppSettings.EpisodeListMode,
-    viewModel: AnalysisViewModel,
+    boostVideoInfo: AppOldCommonBean?,
+    savePic: suspend (String?) -> Unit,
     goToUser: (Long) -> Unit,
-    onToVideoCodingInfo: () -> Unit,
     onToLogin: () -> Unit,
+    downloadConfigContent: @Composable () -> Unit,
     animatedContentScope: AnimatedContentScope,
     sharedTransitionScope: SharedTransitionScope,
 ) {
-    val boostVideoInfo by viewModel.boostVideoInfo.collectAsState()
-
-    val context = LocalContext.current
     Column(
         modifier = Modifier
             .weight(1f)
@@ -451,7 +451,7 @@ fun ColumnScope.VerticalAnalysisVideoCardList(
                 ),
             ) {
                 AnalysisVideoCard(asLinkResultType, isBILILogin, analysisBaseInfo, savePic = {
-                    viewModel.downloadImageToAlbum(context, it, "BILIBILIAS")
+                    savePic(it)
                 }, goToUser, onToLogin, boostVideoInfo)
             }
 
@@ -464,14 +464,7 @@ fun ColumnScope.VerticalAnalysisVideoCardList(
                 ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                AnalysisDownloadConfigContent(
-                    downloadInfo,
-                    asLinkResultType,
-                    isSelectSingleModel,
-                    episodeListMode,
-                    viewModel,
-                    onToVideoCodingInfo
-                )
+                downloadConfigContent()
 
             }
 
@@ -1462,11 +1455,11 @@ private fun AnalysisDownloadConfigContent(
     viewModel: AnalysisViewModel,
     onToVideoCodingInfo: () -> Unit,
 ) {
-    val donghuaPlayerInfo by viewModel.donghuaPlayerInfo.collectAsState()
-    val videoPlayerInfo by viewModel.videoPlayerInfo.collectAsState()
-    val currentUserInfo by viewModel.currentUserInfo.collectAsState()
-    val interactiveVideo by viewModel.interactiveVideo.collectAsState()
-    val boostVideoInfo by viewModel.boostVideoInfo.collectAsState()
+    val donghuaPlayerInfo by viewModel.donghuaPlayerInfo.collectAsStateWithLifecycle()
+    val videoPlayerInfo by viewModel.videoPlayerInfo.collectAsStateWithLifecycle()
+    val currentUserInfo by viewModel.currentUserInfo.collectAsStateWithLifecycle()
+    val interactiveVideo by viewModel.interactiveVideo.collectAsStateWithLifecycle()
+    val boostVideoInfo by viewModel.boostVideoInfo.collectAsStateWithLifecycle()
 
     when (asLinkResultType) {
         is ASLinkResultType.BILI.Donghua -> {

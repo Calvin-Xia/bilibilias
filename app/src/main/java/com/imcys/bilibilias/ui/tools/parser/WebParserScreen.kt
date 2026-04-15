@@ -26,7 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +55,7 @@ data object WebParserRoute : NavKey
 @Composable
 fun WebParserScreen(webParserRoute: WebParserRoute, onToBack: () -> Unit) {
     val vm = koinViewModel<WebParserViewModel>()
-    val uiState by vm.uiState.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
     WebParserScaffold(onToBack, onToAs = {
         sendAnalysisEvent(AnalysisEvent(uiState.currentUrl))
     }) {

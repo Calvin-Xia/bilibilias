@@ -30,7 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,7 +75,7 @@ fun DonateContent(paddingValues: PaddingValues) {
     var showPayDialog by remember { mutableStateOf(false) }
     var payUrl by remember { mutableStateOf("") }
     val vm = koinViewModel<DonateViewModel>()
-    val uiState by vm.uiState.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier

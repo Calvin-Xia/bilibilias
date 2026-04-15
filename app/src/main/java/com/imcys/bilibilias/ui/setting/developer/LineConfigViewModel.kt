@@ -1,5 +1,6 @@
 package com.imcys.bilibilias.ui.setting.developer
 
+import androidx.compose.runtime.Immutable
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +17,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.net.URL
 
+@Immutable
 data class LineConfigUIState(
     val currentLineHost: String = "",
 )

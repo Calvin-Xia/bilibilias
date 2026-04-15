@@ -37,7 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.Immutable
 import androidx.navigation3.runtime.NavKey
 import com.imcys.bilibilias.network.ApiStatus
 import com.imcys.bilibilias.network.NetWorkResult
@@ -73,6 +74,7 @@ import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.koinViewModel
 
 @Serializable
+@Immutable
 data class SubjectDetailRoute(
     val subjectId: Long
 ) : NavKey
@@ -80,7 +82,7 @@ data class SubjectDetailRoute(
 @Composable
 fun SubjectDetailScreen(subjectDetailRoute: SubjectDetailRoute, onToBack: () -> Unit) {
     val vm = koinViewModel<SubjectDetailViewModel>()
-    val subtitleData by vm.subjectData.collectAsState()
+    val subtitleData by vm.subjectData.collectAsStateWithLifecycle()
     val density = LocalDensity.current
     LaunchedEffect(subjectDetailRoute.subjectId) {
         vm.loadSubjectDetail(subjectDetailRoute.subjectId)

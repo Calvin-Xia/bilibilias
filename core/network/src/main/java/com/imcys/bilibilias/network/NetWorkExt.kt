@@ -1,5 +1,4 @@
 package com.imcys.bilibilias.network
-
 import com.imcys.bilibilias.common.event.sendLoginErrorEvent
 import com.imcys.bilibilias.common.event.sendRequestFrequentEvent
 import com.imcys.bilibilias.network.adapter.NetWorkAdapter

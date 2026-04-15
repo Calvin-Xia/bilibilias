@@ -1,5 +1,6 @@
 package com.imcys.bilibilias.ui.login
 
+import android.content.Context
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -54,7 +55,7 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -116,9 +117,9 @@ fun QRCodeLoginScreen(
 ) {
     val vm = koinViewModel<QRCodeLoginViewModel>()
     val uiState = vm.uiState
-    val qrCodeInfoState by vm.qrCodeInfoState.collectAsState()
-    val qrCodeScanInfoState by vm.qrCodeScanInfoState.collectAsState()
-    val loginUserInfoState by vm.loginUserInfoState.collectAsState()
+    val qrCodeInfoState by vm.qrCodeInfoState.collectAsStateWithLifecycle()
+    val qrCodeScanInfoState by vm.qrCodeScanInfoState.collectAsStateWithLifecycle()
+    val loginUserInfoState by vm.loginUserInfoState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val windowWidthSizeClass = rememberWidthSizeClass()
     var agreePrivacyPolicy by rememberSaveable { mutableStateOf(false) }
@@ -184,11 +185,14 @@ fun QRCodeLoginScreen(
                     when (size) {
                         WindowWidthSizeClass.Compact -> {
                             QRCodeLoginContentWidthCompact(
-                                vm,
                                 route,
                                 uiState,
                                 qrCodeInfoState,
                                 agreePrivacyPolicy,
+                                updateLoginPlatform = vm::updateLoginPlatform,
+                                updateQrCode = vm::getLoadLoginQRCodeInfo,
+                                saveQRCodeImage = { context -> vm.saveQRCodeImageToGallery(context) },
+                                goScanQR = { context -> vm.goToScanQR(context) },
                                 updateAgreePrivacyPolicy = { state ->
                                     agreePrivacyPolicy = state
                                 },
@@ -199,11 +203,14 @@ fun QRCodeLoginScreen(
 
                         WindowWidthSizeClass.Medium, WindowWidthSizeClass.Expanded -> {
                             QRCodeLoginContentWidthMediumAndExpanded(
-                                vm,
                                 route,
                                 uiState,
                                 qrCodeInfoState,
                                 agreePrivacyPolicy,
+                                updateLoginPlatform = vm::updateLoginPlatform,
+                                updateQrCode = vm::getLoadLoginQRCodeInfo,
+                                saveQRCodeImage = { context -> vm.saveQRCodeImageToGallery(context) },
+                                goScanQR = { context -> vm.goToScanQR(context) },
                                 updateAgreePrivacyPolicy = { state ->
                                     agreePrivacyPolicy = state
                                 },
@@ -222,11 +229,14 @@ fun QRCodeLoginScreen(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun QRCodeLoginContentWidthMediumAndExpanded(
-    vm: QRCodeLoginViewModel,
     route: QRCodeLoginRoute,
     uiState: QRCodeLoginViewModel.UIState,
     qrCodeInfoState: NetWorkResult<QRCodeInfo?>,
     agreePrivacyPolicy: Boolean,
+    updateLoginPlatform: (LoginPlatform) -> Unit,
+    updateQrCode: () -> Unit,
+    saveQRCodeImage: (Context) -> Unit,
+    goScanQR: (Context) -> Unit,
     updateAgreePrivacyPolicy: (Boolean) -> Unit,
     animatedVisibilityScope: AnimatedContentScope,
     sharedTransitionScope: SharedTransitionScope,
@@ -247,8 +257,8 @@ fun QRCodeLoginContentWidthMediumAndExpanded(
                 uiState.selectedLoginPlatform,
                 qrCodeInfoState,
                 agreePrivacyPolicy,
-                updateLoginPlatform = vm::updateLoginPlatform,
-                updateQrCode = vm::getLoadLoginQRCodeInfo,
+                updateLoginPlatform = updateLoginPlatform,
+                updateQrCode = updateQrCode,
                 updateAgreePrivacyPolicy = { state -> updateAgreePrivacyPolicy(state) }
             )
             // 操作区域
@@ -269,10 +279,10 @@ fun QRCodeLoginContentWidthMediumAndExpanded(
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                     saveQRCodeImage = {
-                        vm.saveQRCodeImageToGallery(context)
+                        saveQRCodeImage(context)
                     },
                     goScanQR = {
-                        vm.goToScanQR(context)
+                        goScanQR(context)
                     },
                 )
             }
@@ -284,11 +294,14 @@ fun QRCodeLoginContentWidthMediumAndExpanded(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun QRCodeLoginContentWidthCompact(
-    vm: QRCodeLoginViewModel,
     route: QRCodeLoginRoute,
     uiState: QRCodeLoginViewModel.UIState,
     qrCodeInfoState: NetWorkResult<QRCodeInfo?>,
     agreePrivacyPolicy: Boolean,
+    updateLoginPlatform: (LoginPlatform) -> Unit,
+    updateQrCode: () -> Unit,
+    saveQRCodeImage: (Context) -> Unit,
+    goScanQR: (Context) -> Unit,
     updateAgreePrivacyPolicy: (Boolean) -> Unit,
     animatedVisibilityScope: AnimatedContentScope,
     sharedTransitionScope: SharedTransitionScope,
@@ -308,8 +321,8 @@ fun QRCodeLoginContentWidthCompact(
                 uiState.selectedLoginPlatform,
                 qrCodeInfoState,
                 agreePrivacyPolicy,
-                updateLoginPlatform = vm::updateLoginPlatform,
-                updateQrCode = vm::getLoadLoginQRCodeInfo,
+                updateLoginPlatform = updateLoginPlatform,
+                updateQrCode = updateQrCode,
                 updateAgreePrivacyPolicy = { state -> updateAgreePrivacyPolicy(state) }
             )
             // 操作区域
@@ -324,10 +337,10 @@ fun QRCodeLoginContentWidthCompact(
                 animatedVisibilityScope = animatedVisibilityScope,
                 sharedTransitionScope = sharedTransitionScope,
                 saveQRCodeImage = {
-                    vm.saveQRCodeImageToGallery(context)
+                    saveQRCodeImage(context)
                 },
                 goScanQR = {
-                    vm.goToScanQR(context)
+                    goScanQR(context)
                 }
             )
         }

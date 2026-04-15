@@ -1,5 +1,6 @@
 package com.imcys.bilibilias.ui.user
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.imcys.bilibilias.data.model.BILISpaceArchiveModel
@@ -20,6 +21,7 @@ class UserViewModel(
     private val appAPIService: AppAPIService,
 ) : ViewModel() {
 
+    @Immutable
     data class UIState(
         val biliUsersEntity: BILIUsersEntity? = null
     )

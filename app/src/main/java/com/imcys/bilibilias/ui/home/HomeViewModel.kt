@@ -2,6 +2,7 @@ package com.imcys.bilibilias.ui.home
 
 import android.annotation.SuppressLint
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.imcys.bilibilias.common.utils.AppUtils
@@ -50,6 +51,7 @@ class HomeViewModel(
 
 ) : ViewModel() {
 
+    @Immutable
     data class UIState(
         val fromLoginEventConsumed: Boolean = false,
         val shownAppUpdate: Boolean = false,

@@ -24,12 +24,13 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.Immutable
 import androidx.navigation3.runtime.NavKey
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
@@ -51,6 +52,7 @@ import org.koin.androidx.compose.koinViewModel
 
 
 @Serializable
+@Immutable
 data class UserFolderRoute(
     val mid: Long,
 ) : NavKey
@@ -62,15 +64,21 @@ fun UserFolderScreen(userFolderRoute: UserFolderRoute, onToBack: () -> Unit) {
     val scrollBehavior =
         TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val vm = koinViewModel<UserFolderViewModel>()
-    val uiState by vm.uiState.collectAsState()
-    val folderList by vm.folderList.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
+    val folderList by vm.folderList.collectAsStateWithLifecycle()
     val items = vm.items.collectAsLazyPagingItems()
     LaunchedEffect(userFolderRoute.mid) {
         vm.initMid(userFolderRoute.mid)
     }
 
     UserFolderScaffold(scrollBehavior, onToBack = onToBack) { paddingValues ->
-        UserFolderContent(vm, uiState.currentMediaId, folderList, items, paddingValues)
+        UserFolderContent(
+            currentMediaId = uiState.currentMediaId,
+            folderList = folderList,
+            itemList = items,
+            paddingValues = paddingValues,
+            onUpdateCurrentMediaId = vm::updateCurrentMediaId
+        )
     }
 }
 
@@ -78,11 +86,11 @@ fun UserFolderScreen(userFolderRoute: UserFolderRoute, onToBack: () -> Unit) {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun UserFolderContent(
-    vm: UserFolderViewModel,
     currentMediaId: Long,
     folderList: NetWorkResult<BILIUserFolderListInfo?>,
     itemList: LazyPagingItems<BILIUserFolderDetailInfo.Media>,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    onUpdateCurrentMediaId: (Long) -> Unit
 ) {
 
     LazyVerticalGrid(
@@ -105,8 +113,8 @@ fun UserFolderContent(
                                 itemsContent = { info -> Text(info.title) },
                                 rule = { info -> currentMediaId == info.id },
                                 key = { info -> info.id },
-                                onCheckedChange = { item, checked ->
-                                    vm.updateCurrentMediaId(item.id)
+                                onCheckedChange = { item, _ ->
+                                    onUpdateCurrentMediaId(item.id)
                                 }
                             )
                         }

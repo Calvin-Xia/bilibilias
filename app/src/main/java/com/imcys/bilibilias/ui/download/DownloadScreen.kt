@@ -38,7 +38,7 @@ import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -79,9 +79,9 @@ fun DownloadScreen(route: DownloadRoute, onToBack: () -> Unit) {
     val haptics = LocalHapticFeedback.current
 
     // 收集状态
-    val downloadListState by vm.downloadListState.collectAsState()
-    val completedSegments by vm.completedSegments.collectAsState()
-    val currentSortType by vm.downloadSortType.collectAsState()
+    val downloadListState by vm.downloadListState.collectAsStateWithLifecycle()
+    val completedSegments by vm.completedSegments.collectAsStateWithLifecycle()
+    val currentSortType by vm.downloadSortType.collectAsStateWithLifecycle()
 
     // 本地 UI 状态
     var selectIndex by remember { mutableIntStateOf(0) }

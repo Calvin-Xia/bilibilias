@@ -28,7 +28,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,7 +67,7 @@ object LayoutTypesetRoute : NavKey
 fun LayoutTypesetScreen(layoutTypesetRoute: LayoutTypesetRoute, onToBack: () -> Unit) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val vm = koinViewModel<LayoutTypesetViewModel>()
-    val homeLayoutList by vm.homeLayoutTypesetList.collectAsState()
+    val homeLayoutList by vm.homeLayoutTypesetList.collectAsStateWithLifecycle()
     LayoutTypesetScaffold(
         scrollBehavior = scrollBehavior,
         onToBack = onToBack
@@ -76,19 +76,22 @@ fun LayoutTypesetScreen(layoutTypesetRoute: LayoutTypesetRoute, onToBack: () -> 
             modifier = Modifier
                 .maybeNestedScroll(scrollBehavior)
                 .padding(it),
-            vm = vm,
             homeLayoutList, onMove = { from, to ->
                 vm.moveLayoutItem(from.index, to.index)
-            })
+            },
+            onToggleHidden = { item, hidden ->
+                vm.setLayoutItemHidden(item, hidden)
+            }
+        )
     }
 }
 
 @Composable
 fun LayoutTypesetContent(
     modifier: Modifier = Modifier,
-    vm: LayoutTypesetViewModel,
     homeLayoutList: List<AppSettings.HomeLayoutItem>,
     onMove: (ItemPosition, ItemPosition) -> Unit,
+    onToggleHidden: (AppSettings.HomeLayoutItem, Boolean) -> Unit,
 ) {
     val state = rememberReorderableLazyListState(onMove = { from, to ->
         onMove(from, to)
@@ -136,7 +139,7 @@ fun LayoutTypesetContent(
                         )
                         Spacer(Modifier.weight(1f))
                         ASIconButton(onClick = {
-                            vm.setLayoutItemHidden(item, !item.isHidden)
+                            onToggleHidden(item, !item.isHidden)
                         }) {
                             Icon(
                                 if (item.isHidden) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,

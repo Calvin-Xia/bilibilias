@@ -1,5 +1,6 @@
 package com.imcys.bilibilias.ui.tools.donate
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.imcys.bilibilias.network.model.app.AppOldDonateBean
@@ -14,6 +15,7 @@ class DonateViewModel(
     appAPIService: AppAPIService
 ) : ViewModel() {
 
+    @Immutable
     data class UIState(
         val oldDonateInfo: AppOldDonateBean? = null
     )

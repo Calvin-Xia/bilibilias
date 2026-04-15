@@ -22,13 +22,14 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.Immutable
 import androidx.navigation3.runtime.NavKey
 import com.imcys.bilibilias.common.utils.toHttps
 import com.imcys.bilibilias.ui.weight.ASTopAppBar
@@ -41,6 +42,7 @@ import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.koinViewModel
 
 @Serializable
+@Immutable
 data class WorkListRoute(
     val mid: Long = 0L
 ) : NavKey
@@ -54,7 +56,7 @@ internal fun WorkListScreen(
     val scrollBehavior =
         TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val vm = koinViewModel<WorkListViewModel>()
-    val uiState by vm.uiState.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(workListRoute.mid) {
         vm.init(mid = workListRoute.mid)
@@ -65,8 +67,9 @@ internal fun WorkListScreen(
         onToBack = onToBack
     ) { paddingValues ->
         WorkListScreenContent(
-            vm = vm,
             uiState = uiState,
+            onLoadMore = vm::loadNextPage,
+            onUpdateKeyword = vm::onQueryChange,
             paddingValues = paddingValues,
         )
     }
@@ -75,8 +78,9 @@ internal fun WorkListScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WorkListScreenContent(
-    vm: WorkListViewModel,
     uiState: WorkListViewModel.UIState,
+    onLoadMore: () -> Unit,
+    onUpdateKeyword: (String?) -> Unit,
     paddingValues: PaddingValues,
 ) {
     Column(
@@ -90,8 +94,8 @@ private fun WorkListScreenContent(
             else -> {
                 WorkList(
                     uiState,
-                    onLoadMore = { vm.loadNextPage() },
-                    onUpdateKeyword = { vm.onQueryChange(it) }
+                    onLoadMore = onLoadMore,
+                    onUpdateKeyword = onUpdateKeyword
                 )
             }
         }

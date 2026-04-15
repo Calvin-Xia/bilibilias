@@ -26,7 +26,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,8 +69,8 @@ fun LineConfigScreen(lineConfigRoute: LineConfigRoute, onToBack: () -> Unit) {
 @Composable
 fun LineConfigContent(modifier: Modifier) {
     val vm = koinViewModel<LineConfigViewModel>()
-    val uiState by vm.uiState.collectAsState()
-    val biliLineHostListState by vm.biliLineHostListState.collectAsState()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
+    val biliLineHostListState by vm.biliLineHostListState.collectAsStateWithLifecycle()
     val widthSizeClass = rememberWidthSizeClass()
 
     LaunchedEffect(Unit) {
@@ -131,7 +131,12 @@ fun LineConfigContent(modifier: Modifier) {
 
         biliLineHostListState.forEach {
             item {
-                LineHostCard(uiState, it, vm)
+                LineHostCard(
+                    uiState = uiState,
+                    item = it,
+                    onUpdateLineHost = vm::updateLineHost,
+                    onStartSpeedTest = vm::startSpeedTest
+                )
             }
         }
 
@@ -151,7 +156,8 @@ fun LineConfigContent(modifier: Modifier) {
 private fun LineHostCard(
     uiState: LineConfigUIState,
     item: BILILineHostItem,
-    vm: LineConfigViewModel
+    onUpdateLineHost: (String) -> Unit,
+    onStartSpeedTest: (BILILineHostItem) -> Unit
 ) {
     val colorState by animateColorAsState(
         targetValue = if (uiState.currentLineHost == item.host)
@@ -163,7 +169,7 @@ private fun LineHostCard(
         // 选中颜色
         color = colorState,
         onClick = {
-            vm.updateLineHost(item.host)
+            onUpdateLineHost(item.host)
         }
     ) {
         Row(
@@ -180,7 +186,7 @@ private fun LineHostCard(
                     .shimmer(item.checkSpeeding)
                     .then(if (item.host.isNotEmpty()) Modifier else Modifier.alpha(0f)),
                 onClick = {
-                    vm.startSpeedTest(item)
+                    onStartSpeedTest(item)
                 }) {
                 if (item.speed != null) {
                     Text("${item.speed}")

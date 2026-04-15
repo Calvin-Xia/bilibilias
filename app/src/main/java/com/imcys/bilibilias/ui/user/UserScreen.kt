@@ -48,7 +48,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -110,10 +110,10 @@ internal fun UserScreen(
 ) {
     val owner = LocalContext.current as ViewModelStoreOwner
     val vm = koinViewModel<UserViewModel>(viewModelStoreOwner = owner)
-    val pageInfoState by vm.userPageInfoState.collectAsState()
-    val userStatInfoState by vm.userStatInfoState.collectAsState()
-    val spaceArchiveInfoState by vm.spaceArchiveInfoState.collectAsState()
-    val uiState by vm.uiState.collectAsState()
+    val pageInfoState by vm.userPageInfoState.collectAsStateWithLifecycle()
+    val userStatInfoState by vm.userStatInfoState.collectAsStateWithLifecycle()
+    val spaceArchiveInfoState by vm.spaceArchiveInfoState.collectAsStateWithLifecycle()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
     var showChooseFreezeDialog by remember { mutableStateOf(false) }
     var showFreezeAllDialog by remember { mutableStateOf(false) }
     var showFreezeSingleDialog by remember { mutableStateOf(false) }
@@ -181,12 +181,12 @@ internal fun UserScreen(
     // 冻结全部视频对话框
     FreezeAllVideosDialog(showFreezeAllDialog, {
         showFreezeAllDialog = false
-    }, vm)
+    }, vm::freezeUpAllVideo)
 
     // 冻结单个视频对话框
     FreezeSingleVideoDialog(showFreezeSingleDialog, {
         showFreezeSingleDialog = false
-    }, vm)
+    }, vm::freezeSingleVideo)
 }
 
 
@@ -248,7 +248,11 @@ fun ChooseFreezeTypeDialog(
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun FreezeAllVideosDialog(show: Boolean, onDismiss: () -> Unit, vm: UserViewModel) {
+fun FreezeAllVideosDialog(
+    show: Boolean,
+    onDismiss: () -> Unit,
+    onFreezeAllVideo: suspend () -> Result<com.imcys.bilibilias.network.model.app.AppOldSoFreezeBean>
+) {
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -276,7 +280,7 @@ fun FreezeAllVideosDialog(show: Boolean, onDismiss: () -> Unit, vm: UserViewMode
             ASTextButton(onClick = {
                 scope.launch(Dispatchers.IO) {
                     isLoading = true
-                    val result = vm.freezeUpAllVideo()
+                    val result = onFreezeAllVideo()
                     val data = result.getOrNull()
                     isLoading = false
                     launch(Dispatchers.Main) {
@@ -302,7 +306,11 @@ fun FreezeAllVideosDialog(show: Boolean, onDismiss: () -> Unit, vm: UserViewMode
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun FreezeSingleVideoDialog(show: Boolean, onDismiss: () -> Unit, vm: UserViewModel) {
+fun FreezeSingleVideoDialog(
+    show: Boolean,
+    onDismiss: () -> Unit,
+    onFreezeSingleVideo: suspend (String) -> Result<com.imcys.bilibilias.network.model.app.AppOldSoFreezeBean>
+) {
     var bvInput by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -341,7 +349,7 @@ fun FreezeSingleVideoDialog(show: Boolean, onDismiss: () -> Unit, vm: UserViewMo
                 if (bv.isNotEmpty()) {
                     scope.launch(Dispatchers.IO) {
                         isLoading = true
-                        val result = vm.freezeSingleVideo(bv)
+                        val result = onFreezeSingleVideo(bv)
                         val data = result.getOrNull()
                         isLoading = false
                         launch(Dispatchers.Main) {

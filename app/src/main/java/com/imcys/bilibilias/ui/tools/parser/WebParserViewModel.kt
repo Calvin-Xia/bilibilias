@@ -1,5 +1,6 @@
 package com.imcys.bilibilias.ui.tools.parser
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import com.google.protobuf.copy
 import com.imcys.bilibilias.network.AsCookiesStorage
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 
+@Immutable
 data class WebParserUIState(
     val currentUrl: String = "https://m.bilibili.com/",
 )

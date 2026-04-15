@@ -1,5 +1,6 @@
 package com.imcys.bilibilias.ui.user.work
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.imcys.bilibilias.data.model.BILISpaceArchiveModel
@@ -20,6 +21,7 @@ class WorkListViewModel(
     private val userInfoRepository: UserInfoRepository
 ) : ViewModel() {
 
+    @Immutable
     data class UIState(
         val mid: Long = 0L,
         val page: Int = 0,

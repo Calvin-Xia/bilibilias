@@ -46,7 +46,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -92,8 +92,8 @@ internal fun BILIBILIASAppScreen() {
 private fun MainScaffold() {
     val konfettiState = rememberKonfettiState(false)
     val vm = koinViewModel<BILIBILIASAppViewModel>()
-    val appSettings by vm.appSettings.collectAsState()
-    val uiState by vm.uiState.collectAsState()
+    val appSettings by vm.appSettings.collectAsStateWithLifecycle()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
     var showPrivacyPolicyRefuseTip by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val bottomNavHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()

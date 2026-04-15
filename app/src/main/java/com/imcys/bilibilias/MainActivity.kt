@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.baidu.mobstat.StatService
 import com.imcys.bilibilias.common.data.CommonBuildConfig
 import com.imcys.bilibilias.common.event.restoreBackStack
@@ -73,7 +73,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             var enabledDynamicColor by remember { mutableStateOf(false) }
             val updateSnackBarHostState = remember { SnackbarHostState() }
-            val showSkipVersionState by showSkipVersion.collectAsState()
+            val showSkipVersionState by showSkipVersion.collectAsStateWithLifecycle()
 
             LaunchedEffect(Unit) {
                 appSettingsFlow.collect {

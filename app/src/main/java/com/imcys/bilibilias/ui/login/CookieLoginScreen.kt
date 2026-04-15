@@ -32,7 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +53,8 @@ import com.imcys.bilibilias.R
 import com.imcys.bilibilias.common.utils.FirebaseExt
 import com.imcys.bilibilias.common.utils.analyticsSafe
 import com.imcys.bilibilias.network.ApiStatus
+import com.imcys.bilibilias.network.NetWorkResult
+import com.imcys.bilibilias.data.model.BILILoginUserModel
 import com.imcys.bilibilias.ui.weight.ASAlertDialog
 import com.imcys.bilibilias.ui.weight.ASAsyncImage
 import com.imcys.bilibilias.ui.weight.ASIconButton
@@ -72,19 +74,27 @@ data object CookeLoginRoute : NavKey
 @Composable
 fun CookeLoginScreen(cookeLoginRoute: CookeLoginRoute, onToBack: () -> Unit, onFinish: () -> Unit) {
     val vm = koinViewModel<CookieLoginViewModel>()
+    val userInfo by vm.loginUserInfoState.collectAsStateWithLifecycle()
     CookeLoginScaffold(onToBack) { paddingValues ->
-        CookeLoginContent(vm, paddingValues, onFinish)
+        CookeLoginContent(
+            userInfo = userInfo,
+            onCheckCookies = vm::checkCookies,
+            onSaveLoginCookie = vm::saveLoginCookie,
+            paddingValues = paddingValues,
+            onFinish = onFinish
+        )
     }
 }
 
 @Composable
 fun CookeLoginContent(
-    vm: CookieLoginViewModel,
+    userInfo: NetWorkResult<BILILoginUserModel?>,
+    onCheckCookies: (String) -> Unit,
+    onSaveLoginCookie: suspend () -> Unit,
     paddingValues: PaddingValues,
     onFinish: () -> Unit
 ) {
     var cookiesString by remember { mutableStateOf("") }
-    val userInfo by vm.loginUserInfoState.collectAsState()
     val scope = rememberCoroutineScope()
     var agreePrivacyPolicy by remember { mutableStateOf(false) }
     var showSavingDialog by remember { mutableStateOf(false) }
@@ -102,7 +112,7 @@ fun CookeLoginContent(
             value = cookiesString,
             onValueChange = {
                 cookiesString = it
-                vm.checkCookies(it)
+                onCheckCookies(it)
             },
             label = { Text(stringResource(R.string.login_cookie_input_label)) },
             maxLines = 4,
@@ -137,7 +147,7 @@ fun CookeLoginContent(
                             showSavingDialog = true
                             scope.launch {
                                 FirebaseExt.logLogin("Cookie")
-                                vm.saveLoginCookie()
+                                onSaveLoginCookie()
                                 showSavingDialog = false
                                 onFinish()
                             }

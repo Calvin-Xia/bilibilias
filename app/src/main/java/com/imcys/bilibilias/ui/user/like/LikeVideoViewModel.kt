@@ -1,5 +1,6 @@
 package com.imcys.bilibilias.ui.user.like
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.imcys.bilibilias.data.repository.UserInfoRepository
@@ -22,6 +23,7 @@ class LikeVideoViewModel(
     private val userInfoRepository: UserInfoRepository
 ) : ViewModel() {
 
+    @Immutable
     data class UIState(
         val mid: Long = 0L,
         val currentMediaId: Long = 0L
