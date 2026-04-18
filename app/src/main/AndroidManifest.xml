@@ -7,7 +7,7 @@
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
 
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -48,6 +48,12 @@
                 <category android:name="android.intent.category.DEFAULT" />
 
                 <data android:mimeType="text/*" />
+            </intent-filter>
+            <intent-filter>
+                <data
+                    android:host="app"
+                    android:path="/loginFinish"
+                    android:scheme="bilibilias" />
             </intent-filter>
         </activity>
 

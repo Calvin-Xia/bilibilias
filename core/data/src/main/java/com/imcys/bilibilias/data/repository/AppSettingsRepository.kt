@@ -236,6 +236,14 @@ class AppSettingsRepository(
             }
         }
     }
+
+    suspend fun updateUnknownAppSignWarningCloseTime(closeTime: Long) {
+        dataStore.updateData { currentSettings ->
+            currentSettings.copy {
+                unknownAppSignWarningCloseTime = closeTime
+            }
+        }
+    }
 }
 
 

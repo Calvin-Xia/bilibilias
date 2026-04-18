@@ -98,4 +98,5 @@ message AppSettings {
   string use_video_container = 18;
   string use_audio_container = 19;
   string nav_back_stack = 20;
+  int64 unknown_app_sign_warning_close_time = 21;
 }

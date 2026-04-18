@@ -14,7 +14,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -38,11 +40,14 @@ fun ASCollapsingToolbar(
     val minHeightPx = with(density) { minHeight.toPx() }
     var toolbarHeightPx by remember { mutableFloatStateOf(maxHeightPx) }
 
-    val appBarAlpha =
-        ((maxHeightPx - toolbarHeightPx) / (maxHeightPx - minHeightPx)).coerceIn(0f, 1f)
+    val currentOnChangeProgress by rememberUpdatedState(onChangeProgress)
 
-    LaunchedEffect(appBarAlpha) {
-        onChangeProgress(appBarAlpha)
+    LaunchedEffect(maxHeightPx, minHeightPx) {
+        snapshotFlow {
+            ((maxHeightPx - toolbarHeightPx) / (maxHeightPx - minHeightPx)).coerceIn(0f, 1f)
+        }.collect { progress ->
+            currentOnChangeProgress(progress)
+        }
     }
 
     val nestedScrollConnection = remember(minHeightPx) {

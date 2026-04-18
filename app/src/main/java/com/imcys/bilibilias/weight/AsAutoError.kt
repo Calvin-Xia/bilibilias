@@ -51,6 +51,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+private enum class AsAutoErrorContentSlot {
+    Success,
+    Loading,
+    Default,
+    Error
+}
+
 @Composable
 fun <T> AsAutoError(
     netWorkResult: NetWorkResult<T>,
@@ -59,8 +66,23 @@ fun <T> AsAutoError(
     onSuccessContent: @Composable () -> Unit = {},
     onErrorContent: (@Composable (errorMsg: String?, response: BiliApiResponse<T?>?) -> Unit)? = null,
     onRetry: (() -> Unit)? = null,
-) = AnimatedContent(
-    targetState = netWorkResult.status,
+) {
+    val targetSlot = when (netWorkResult.status) {
+        ApiStatus.SUCCESS -> AsAutoErrorContentSlot.Success
+        ApiStatus.ERROR -> AsAutoErrorContentSlot.Error
+        ApiStatus.LOADING ->
+            if (onLoadingContent != null) AsAutoErrorContentSlot.Loading else AsAutoErrorContentSlot.Success
+
+        ApiStatus.DEFAULT ->
+            when {
+                onDefaultContent != null -> AsAutoErrorContentSlot.Default
+                onLoadingContent != null -> AsAutoErrorContentSlot.Loading
+                else -> AsAutoErrorContentSlot.Success
+            }
+    }
+
+    AnimatedContent(
+    targetState = targetSlot,
     transitionSpec = {
         fadeIn(
             animationSpec = tween(durationMillis = 300)
@@ -68,20 +90,20 @@ fun <T> AsAutoError(
             animationSpec = tween(durationMillis = 300)
         )
     },
-) { targetUiState ->
-    when (targetUiState) {
-        ApiStatus.SUCCESS -> onSuccessContent()
-        ApiStatus.ERROR -> onErrorContent?.invoke(
+) { targetContentSlot ->
+    when (targetContentSlot) {
+        AsAutoErrorContentSlot.Success -> onSuccessContent()
+        AsAutoErrorContentSlot.Loading -> onLoadingContent?.invoke() ?: onSuccessContent()
+        AsAutoErrorContentSlot.Default -> onDefaultContent?.invoke() ?: onSuccessContent()
+        AsAutoErrorContentSlot.Error -> onErrorContent?.invoke(
             netWorkResult.errorMsg,
             netWorkResult.responseData
         ) ?: CommonError(
             netWorkResult.errorMsg ?: "",
             onRetry
         )
-
-        ApiStatus.LOADING -> onLoadingContent?.invoke() ?: onSuccessContent()
-        ApiStatus.DEFAULT -> onDefaultContent?.invoke() ?: onSuccessContent()
     }
+}
 }
 
 

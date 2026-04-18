@@ -1,6 +1,5 @@
 package com.imcys.bilibilias.ui.setting.roam
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -56,7 +55,6 @@ import com.imcys.bilibilias.R
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.imcys.bilibilias.BuildConfig
 import com.imcys.bilibilias.common.event.sendToastEvent
 import com.imcys.bilibilias.database.entity.LoginPlatform
 import com.imcys.bilibilias.datastore.AppSettings

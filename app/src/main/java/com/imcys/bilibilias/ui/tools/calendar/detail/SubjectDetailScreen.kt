@@ -1,7 +1,12 @@
 package com.imcys.bilibilias.ui.tools.calendar.detail
 
+import android.annotation.SuppressLint
+import androidx.annotation.IdRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,17 +15,23 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Notifications
@@ -28,20 +39,26 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,12 +68,19 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.Immutable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
+import com.imcys.bilibilias.R
+import com.imcys.bilibilias.common.uimodel.DonghuaPlayTV
+import com.imcys.bilibilias.common.uimodel.DonghuaPlayPlatform
+import com.imcys.bilibilias.common.uimodel.playProgramList
+import com.imcys.bilibilias.common.uimodel.playTVList
 import com.imcys.bilibilias.network.ApiStatus
 import com.imcys.bilibilias.network.NetWorkResult
 import com.imcys.bilibilias.network.model.bgm.next.BgmNextSubject
@@ -70,6 +94,7 @@ import com.imcys.bilibilias.weight.ASPrimaryTabRow
 import com.imcys.bilibilias.weight.AsAutoError
 import com.imcys.bilibilias.weight.animateIndicatorWithPager
 import com.imcys.bilibilias.weight.asTabIndicatorClip
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.koinViewModel
 
@@ -106,11 +131,19 @@ fun SubjectDetailScreen(subjectDetailRoute: SubjectDetailRoute, onToBack: () -> 
         appBarColor = animatedAppBarColor,
         onMinHeightCalculated = { minHeightPx = it },
     ) {
-        AsAutoError(subtitleData, onSuccessContent = {
-            SubjectDetailContent(subtitleData, minHeightDp, onChangeProgress = {
-                appBarAlpha = it
-            })
-        })
+        AsAutoError(
+            netWorkResult = subtitleData,
+            onSuccessContent = {
+                SubjectDetailContent(
+                    subtitleData = subtitleData,
+                    subjectId = subjectDetailRoute.subjectId,
+                    topImageHeight = minHeightDp,
+                    onChangeProgress = {
+                        appBarAlpha = it
+                    }
+                )
+            }
+        )
 
     }
 }
@@ -128,16 +161,21 @@ enum class SubjectDetailPage {
 @Composable
 private fun SubjectDetailContent(
     subtitleData: NetWorkResult<BgmNextSubject>,
+    subjectId: Long,
     topImageHeight: Dp,
     onChangeProgress: (progress: Float) -> Unit = {},
 ) {
     val pagerState = rememberPagerState { 2 }
+    val pagerScope = rememberCoroutineScope()
+    val detailPageScrollState = rememberSaveable(subjectId, saver = ScrollState.Saver) {
+        ScrollState(initial = 0)
+    }
     ASCollapsingToolbar(
         maxHeight = 400.dp,
         minHeight = topImageHeight,
         onChangeProgress = onChangeProgress,
         toolbar = { SubjectDetailToolbar(subtitleData) }
-    ) { nestedScrollConnection->
+    ) { nestedScrollConnection ->
         ASPrimaryTabRow(
             selectedTabIndex = pagerState.currentPage,
             modifier = Modifier
@@ -153,26 +191,39 @@ private fun SubjectDetailContent(
             }
         ) {
             Tab(
-                onClick = {},
+                onClick = {
+                    pagerScope.launch {
+                        pagerState.animateScrollToPage(0)
+                    }
+                },
                 text = { Text("详情") },
                 selected = false
             )
             Tab(
-                onClick = {},
+                onClick = {
+                    pagerScope.launch {
+                        pagerState.animateScrollToPage(1)
+                    }
+                },
                 text = { Text("视频") },
                 selected = false
             )
         }
         HorizontalPager(
             modifier = Modifier.weight(1f),
-            state = pagerState
+            state = pagerState,
         ) {
-           Column(Modifier.fillMaxSize()) {
-               when (SubjectDetailPage.fromIndex(it)) {
-                   SubjectDetailPage.Detail -> SubjectDetailContentPage(subtitleData,nestedScrollConnection)
-                   SubjectDetailPage.VideoList -> SubjectDetailContentVideoListPage()
-               }
-           }
+            Column(Modifier.fillMaxSize()) {
+                when (SubjectDetailPage.fromIndex(it)) {
+                    SubjectDetailPage.Detail -> SubjectDetailContentPage(
+                        subtitleData = subtitleData,
+                        nestedScrollConnection = nestedScrollConnection,
+                        scrollState = detailPageScrollState
+                    )
+
+                    SubjectDetailPage.VideoList -> SubjectDetailContentVideoListPage()
+                }
+            }
         }
     }
 }
@@ -186,13 +237,48 @@ private fun SubjectDetailContentVideoListPage() {
 private fun SubjectDetailContentPage(
     subtitleData: NetWorkResult<BgmNextSubject>,
     nestedScrollConnection: NestedScrollConnection,
+    scrollState: ScrollState,
 ) {
-    val isNetLoad by remember(subtitleData.status) { mutableStateOf(subtitleData.status != ApiStatus.SUCCESS) }
+    val isNetLoad = subtitleData.status != ApiStatus.SUCCESS
+    var expandedSummary by rememberSaveable { mutableStateOf(false) }
+    val playPlatform by remember(subtitleData.data) {
+        mutableStateOf(
+            subtitleData.data?.infobox?.firstOrNull { it.key == "在线播放平台" }?.values?.mapNotNull { platformStr ->
+                DonghuaPlayPlatform.entries.firstOrNull { platform ->
+                    platformStr.v.contains(platform.name, ignoreCase = true)
+                }
+            }
+        )
+    }
+    val playTv by remember(subtitleData.data) {
+        mutableStateOf(
+            subtitleData.data?.infobox?.asSequence()
+                ?.filter { it.key == "播放电视台" || it.key == "其他电视台" }?.flatMap { tvList ->
+                    tvList.values
+                }?.flatMap {
+                    playTVList.filter { platform ->
+                        it.v.contains(platform.name, ignoreCase = true)
+                    }
+                }?.toList()
+        )
+    }
+    val playProgram by remember(subtitleData.data) {
+        mutableStateOf(
+            subtitleData.data?.infobox?.asSequence()
+                ?.filter { it.key == "播放电视台" || it.key == "其他电视台" }?.flatMap { tvList ->
+                    tvList.values
+                }?.flatMap {
+                    playProgramList.filter { platform ->
+                        it.v.contains(platform.name, ignoreCase = true)
+                    }
+                }?.toList()
+        )
+    }
 
     Column(
         Modifier
             .padding(20.dp)
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .nestedScroll(nestedScrollConnection)
             .fillMaxSize()
     ) {
@@ -215,7 +301,6 @@ private fun SubjectDetailContentPage(
                 valueColor = MaterialTheme.colorScheme.onSurface,
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             )
-
             StatCard(
                 modifier = Modifier
                     .weight(1f)
@@ -244,7 +329,6 @@ private fun SubjectDetailContentPage(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 border = true
             )
-
             StatCard(
                 modifier = Modifier
                     .weight(1f)
@@ -259,16 +343,197 @@ private fun SubjectDetailContentPage(
                 containerColor = MaterialTheme.colorScheme.primary
             )
         }
-
         Spacer(Modifier.height(20.dp))
         Text("简介", fontWeight = FontWeight.Bold, fontSize = 22.sp)
         Spacer(Modifier.height(10.dp))
-        Text(
-            subtitleData.data?.summary ?: "简而言之，燕儿简直",
-            modifier = Modifier.shimmer(isNetLoad)
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            shape = CardDefaults.shape,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+            ) {
+                Box(Modifier) {
+                    Text(
+                        subtitleData.data?.summary ?: "简而言之，燕儿简直",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shimmer(isNetLoad)
+                            .animateContentSize(),
+                        maxLines = if (expandedSummary) Int.MAX_VALUE else 5,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (!isNetLoad) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .run {
+                                    if (expandedSummary) this else {
+                                        background(
+                                            Brush.horizontalGradient(
+                                                colors = listOf(
+                                                    Color.Transparent,
+                                                    MaterialTheme.colorScheme.surfaceContainerLow.copy(
+                                                        alpha = 0.85f
+                                                    ),
+                                                    MaterialTheme.colorScheme.surfaceContainerLow
+                                                )
+                                            ),
+                                            shape = CardDefaults.shape
+                                        )
+                                    }
+                                }
+                                .padding(start = 32.dp)
+                        ) {
+                            TextButton(
+                                onClick = { expandedSummary = !expandedSummary },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (!expandedSummary) Icons.Filled.ExpandMore else Icons.Filled.ExpandLess,
+                                    contentDescription = null
+                                )
+                                Text(if (!expandedSummary) "更多" else "收起")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        FlowRow(
+            verticalArrangement = Arrangement.spacedBy(5.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            subtitleData.data?.metaTags?.forEach {
+                SuggestionChip(onClick = {}, label = {
+                    Text(it)
+                })
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        PlayTvSection(title = "频道", items = playTv ?: emptyList())
+        PlayTvSection(title = "档期", items = playProgram ?: emptyList())
+        PlayPlatformSection(title = "平台", items = playPlatform ?: emptyList())
+
+
+    }
+}
+
+@Composable
+private fun PlayTvSection(
+    title: String,
+    items: List<DonghuaPlayTV>,
+) {
+    AnimatedVisibility(items.isNotEmpty()) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(end = 4.dp)
+            ) {
+                items(items) { item ->
+                    if (item.iconResId != null) {
+                        LogoBadge(
+                            name = item.name,
+                            iconResId = item.iconResId
+                        )
+                    } else {
+                        SuggestionChip(onClick = {}, label = { Text(item.name) })
+                    }
+                }
+            }
+        }
+    }
+    if (items.isNotEmpty()) {
+        Spacer(Modifier.height(10.dp))
+    }
+}
+
+@Composable
+private fun PlayPlatformSection(
+    title: String,
+    items: List<DonghuaPlayPlatform>,
+) {
+    AnimatedVisibility(items.isNotEmpty()) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(end = 4.dp)
+            ) {
+                items(items) { item ->
+                    if (item.iconResId != null) {
+                        PlatformBadge(
+                            name = item.name,
+                            iconResId = item.iconResId
+                        )
+                    } else {
+                        SuggestionChip(onClick = {}, label = { Text(item.name) })
+                    }
+                }
+            }
+        }
+    }
+    if (items.isNotEmpty()) {
+        Spacer(Modifier.height(10.dp))
+    }
+}
+
+@SuppressLint("ResourceType")
+@Composable
+private fun LogoBadge(
+    name: String,
+    @IdRes iconResId: Int,
+) {
+    Surface(
+        onClick = {},
+        shape = CardDefaults.shape,
+        color = MaterialTheme.colorScheme.surface,
+        border = CardDefaults.outlinedCardBorder()
+    ) {
+        Image(
+            painter = painterResource(iconResId),
+            contentDescription = name,
+            modifier = Modifier
+                .height(52.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp)
         )
+    }
+}
 
-
+@SuppressLint("ResourceType")
+@Composable
+private fun PlatformBadge(
+    name: String,
+    @IdRes iconResId: Int,
+) {
+    IconButton(
+        onClick = {},
+        modifier = Modifier.defaultMinSize(minWidth = 44.dp, minHeight = 44.dp),
+        colors = IconButtonDefaults.iconButtonColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Image(
+            painter = painterResource(iconResId),
+            contentDescription = name,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 

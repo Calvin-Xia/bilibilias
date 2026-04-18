@@ -119,23 +119,16 @@ android {
         resValues = true
     }
 
-    kotlin {
-        compilerOptions {
-            freeCompilerArgs.add("-XXLanguage:+ExplicitBackingFields")
+}
+if (!enabledPlayAppMode.toBoolean() && enabledAnalytics.toBoolean()) {
+    /**
+     * 百度统计静态清单合并
+     */
+    androidComponents {
+        onVariants { variant ->
+            variant.sources.manifests.addStaticManifestFile("src/baidu/AndroidManifest.xml")
         }
     }
-
-    if (!enabledPlayAppMode.toBoolean() && enabledAnalytics.toBoolean()) {
-        /**
-         * 百度统计静态清单合并
-         */
-        androidComponents {
-            onVariants { variant ->
-                variant.sources.manifests.addStaticManifestFile("src/baidu/AndroidManifest.xml")
-            }
-        }
-    }
-
 }
 
 dependencies {

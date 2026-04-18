@@ -341,6 +341,10 @@ private fun HomeContent(
     var closeBulletinDialogShow by remember { mutableStateOf(false) }
     var bulletinDialogShow by remember { mutableStateOf(false) }
     var unknownAppSign by remember { mutableStateOf(false) }
+    val shouldShowUnknownAppSignWarning = remember(unknownAppSign, appSettings.unknownAppSignWarningCloseTime) {
+        val oneMonthAgo = System.currentTimeMillis() - HomeViewModel.UNKNOWN_APP_SIGN_WARNING_HIDE_DURATION_MS
+        unknownAppSign && appSettings.unknownAppSignWarningCloseTime <= oneMonthAgo
+    }
 
     val currentSHA1 = rememberSignatureSHA1(context)
     LaunchedEffect(currentSHA1) {
@@ -365,20 +369,35 @@ private fun HomeContent(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (unknownAppSign) {
+            if (shouldShowUnknownAppSignWarning) {
                 item {
                     ASWarringTip(
                         Modifier
                             .animateItem()
                             .animateContentSize()
                     ) {
-                        Text(
-                            if (BuildConfig.DEBUG) {
-                                "当前App处于Debug模式，如果您并非开发人员，请谨慎使用，建议在Github公开的渠道进行下载。"
-                            } else {
-                                "当前应用签名未知，请谨慎使用！建议在Github公开的渠道进行下载。"
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (BuildConfig.DEBUG) {
+                                    "当前App处于Debug模式，如果您并非开发人员，请谨慎使用。"
+                                } else {
+                                    "当前应用签名未知，请谨慎使用！"
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            ASIconButton(
+                                onClick = vm::closeUnknownAppSignWarning,
+                                modifier = Modifier.size(30.dp)
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Close,
+                                    contentDescription = "关闭"
+                                )
                             }
-                        )
+                        }
                     }
                 }
             }

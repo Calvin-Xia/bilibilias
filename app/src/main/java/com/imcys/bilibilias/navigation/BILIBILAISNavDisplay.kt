@@ -32,6 +32,8 @@ import androidx.navigation3.runtime.serialization.NavKeySerializer
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigation3.ui.NavDisplay
 import com.imcys.bilibilias.common.event.analysisHandleChannel
+import com.imcys.bilibilias.common.event.NavigatePageMode
+import com.imcys.bilibilias.common.event.navigatePageEventFlow
 import com.imcys.bilibilias.common.event.playVoucherErrorChannel
 import com.imcys.bilibilias.common.event.requestFrequentHandleChannel
 import com.imcys.bilibilias.common.event.restoreBackStackEventFlow
@@ -104,6 +106,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+import kotlin.collections.listOf
 
 /**
  * BILIBILAIS导航显示组件
@@ -135,6 +138,12 @@ fun BILIBILAISNavDisplay() {
     LaunchedEffect(Unit) {
         requestFrequentHandleChannel.collect {
             backStack.addWithReuse(RequestFrequentRoute(it.url))
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        navigatePageEventFlow.collect {
+            backStack.navigate(it.navKey, it.mode)
         }
     }
 
@@ -181,7 +190,8 @@ fun BILIBILAISNavDisplay() {
         NavDisplay(
             backStack = backStack,
             onBack = onBack,
-            sceneStrategy = listDetailStrategy,
+            sharedTransitionScope = this,
+            sceneStrategies = listOf(listDetailStrategy),
             entryDecorators = listOf(
                 // 防止屏幕旋转等导致的重组时，页面状态丢失
                 rememberSaveableStateHolderNavEntryDecorator(),
@@ -554,6 +564,55 @@ inline fun <reified T : NavKey> NavBackStack<T>.addWithReuse(route: T) {
     } else {
         add(route)
     }
+}
+
+/**
+ * 运行时类型的栈内复用扩展函数。
+ * 适用于事件总线等仅持有 NavKey 基类的场景。
+ */
+fun NavBackStack<NavKey>.addWithReuseKey(route: NavKey) {
+    addWithReuse(route)
+}
+
+/**
+ * 根据导航模式统一处理回退栈。
+ */
+fun NavBackStack<NavKey>.navigate(
+    route: NavKey,
+    mode: NavigatePageMode = NavigatePageMode.MoveToTop
+) {
+    when (mode) {
+        NavigatePageMode.Push -> add(route)
+        NavigatePageMode.ReuseInStack -> addWithReuseKey(route)
+        NavigatePageMode.MoveToTop -> moveToTopOrAdd(route)
+        NavigatePageMode.ReplaceTop -> replaceTop(route)
+        NavigatePageMode.ClearAndPush -> {
+            clear()
+            add(route)
+        }
+    }
+}
+
+/**
+ * 将已有页面移动到栈顶，否则直接添加到栈顶。
+ * 如果存在多个相同页面实例，仅保留最新一次导航所需的目标实例。
+ */
+fun <T : NavKey> NavBackStack<T>.moveToTopOrAdd(route: T) {
+    if (lastOrNull() == route) return
+    removeAll { it == route }
+    add(route)
+}
+
+/**
+ * 使用目标页面替换当前栈顶；如果栈为空则直接添加。
+ */
+fun <T : NavKey> NavBackStack<T>.replaceTop(route: T) {
+    if (isEmpty()) {
+        add(route)
+        return
+    }
+    removeLastOrNull()
+    add(route)
 }
 
 /**

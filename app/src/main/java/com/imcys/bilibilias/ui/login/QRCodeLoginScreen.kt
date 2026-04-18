@@ -89,14 +89,6 @@ import org.koin.androidx.compose.koinViewModel
 import java.net.URLEncoder
 
 
-@Composable
-internal fun QRCodeLoginRoute(
-    onToBack: () -> Unit,
-    onBackHomePage: () -> Unit,
-) {
-    QRCodeLoginScreen(QRCodeLoginRoute(), onToBack, onBackHomePage, {})
-}
-
 
 @Preview
 @Composable
@@ -664,7 +656,7 @@ private fun QRCodeContent(
                                 ApiStatus.SUCCESS -> {
                                     ASAsyncImage(
                                         "https://pan.misakamoe.com/qrcode/?url=" + URLEncoder.encode(
-                                            qrCodeInfoState.data?.url,
+                                            qrCodeInfoState.data?.url + "bilibilias://app/loginFinish",
                                             "UTF-8"
                                         ),
                                         contentDescription = stringResource(R.string.cd_login_qrcode),

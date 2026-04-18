@@ -37,6 +37,8 @@ object AppSettingsSerializer : Serializer<AppSettings> {
             val parsed = AppSettings.parseFrom(input)
             val builder = parsed.toBuilder()
             var modified = false
+            val validVideoContainers = setOf("mp4", "mkv")
+            val validAudioContainers = setOf("m4a", "mp3")
             if (parsed.bangumiNamingRule.isBlank()) {
                 builder.setBangumiNamingRule(defaultValue.bangumiNamingRule)
                 modified = true
@@ -57,11 +59,11 @@ object AppSettingsSerializer : Serializer<AppSettings> {
                 builder.setVideoParsePlatform(defaultValue.videoParsePlatform)
                 modified = true
             }
-            if (parsed.useVideoContainer.isNullOrEmpty()){
-                builder.setVideoParsePlatform(defaultValue.videoParsePlatform)
+            if (parsed.useVideoContainer.isNullOrEmpty() || parsed.useVideoContainer !in validVideoContainers){
+                builder.setUseVideoContainer(defaultValue.useVideoContainer)
                 modified = true
             }
-            if (parsed.useAudioContainer.isNullOrEmpty()){
+            if (parsed.useAudioContainer.isNullOrEmpty() || parsed.useAudioContainer !in validAudioContainers){
                 builder.setUseAudioContainer(defaultValue.useAudioContainer)
                 modified = true
             }

@@ -1,6 +1,5 @@
 package com.imcys.bilibilias.ui.user
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable

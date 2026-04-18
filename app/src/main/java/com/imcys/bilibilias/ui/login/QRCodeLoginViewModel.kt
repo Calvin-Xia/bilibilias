@@ -10,7 +10,6 @@ import android.graphics.Color
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -47,8 +46,6 @@ import com.imcys.bilibilias.common.event.sendToastEvent
 import com.imcys.bilibilias.common.event.sendToastEventOnBlocking
 import com.imcys.bilibilias.data.repository.AppSettingsRepository
 import com.imcys.bilibilias.data.repository.toDataStoreType
-import com.imcys.bilibilias.datastore.AppSettings
-import com.imcys.bilibilias.datastore.source.AppSettingSource
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URLEncoder

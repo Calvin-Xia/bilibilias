@@ -21,6 +21,8 @@ data class BgmNextSubject(
     val locked: Boolean,
     @SerialName("metaTags")
     val metaTags: List<String>,
+    @SerialName("infobox")
+    val infobox: List<BgmInfobox>,
     @SerialName("name")
     val name: String,
     @SerialName("nameCN")
@@ -100,4 +102,14 @@ data class BgmNextSubject(
         val name: String
     )
 }
+
+@Serializable
+data class BgmInfobox(
+    val key: String,
+    val values: List<BgmInfoboxValue>
+)
+
+@Serializable
+data class BgmInfoboxValue(val v: String)
+
 

@@ -32,23 +32,29 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.navigation3.runtime.NavKey
 import com.imcys.bilibilias.common.utils.toHttps
+import com.imcys.bilibilias.network.ApiStatus
+import com.imcys.bilibilias.ui.user.UserViewModel
 import com.imcys.bilibilias.ui.weight.ASAsyncImage
 import com.imcys.bilibilias.ui.weight.ASTopAppBar
 import com.imcys.bilibilias.ui.weight.AsBackIconButton
@@ -87,8 +93,27 @@ private fun CalendarContent(modifier: Modifier, onToSubjectDetail: (Long) -> Uni
     var showTabRow by remember { mutableStateOf(true) }
     val vm = koinViewModel<CalendarViewModel>()
     val calendarData by vm.calendarData.collectAsStateWithLifecycle()
-    val pagerState = rememberPagerState(pageCount = { calendarData.data?.size ?: 0 })
+    val selectedWeekIndex by vm.selectedWeekIndex.collectAsStateWithLifecycle()
+    val pagerState = rememberPagerState(initialPage = selectedWeekIndex, pageCount = { calendarData.data?.size ?: 0 })
     val pagerScope = rememberCoroutineScope()
+
+    LaunchedEffect(calendarData.status, selectedWeekIndex) {
+        val calendarSize = calendarData.data?.size ?: return@LaunchedEffect
+        if (calendarData.status == ApiStatus.SUCCESS && calendarSize > 0) {
+            val targetPage = selectedWeekIndex.coerceIn(0, calendarSize - 1)
+            if (pagerState.currentPage != targetPage) {
+                pagerState.scrollToPage(targetPage)
+            }
+        }
+    }
+
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage }.collect { page ->
+            vm.updateSelectedWeekIndex(page)
+        }
+    }
+
+
 
     Column(modifier) {
         AsAutoError(

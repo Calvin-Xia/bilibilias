@@ -1,6 +1,7 @@
 package com.imcys.bilibilias
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -47,9 +48,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.baidu.mobstat.StatService
 import com.imcys.bilibilias.common.data.CommonBuildConfig
 import com.imcys.bilibilias.common.event.restoreBackStack
-import com.imcys.bilibilias.common.event.restoreBackStackEventFlow
+import com.imcys.bilibilias.common.event.sendNavigatePageEvent
 import com.imcys.bilibilias.common.utils.analyticsSafe
 import com.imcys.bilibilias.common.utils.baiduAnalyticsSafe
+import com.imcys.bilibilias.ui.login.navigation.QRCodeLoginRoute
 import com.imcys.bilibilias.ui.weight.ASTextButton
 
 class MainActivity : ComponentActivity() {
@@ -174,6 +176,18 @@ class MainActivity : ComponentActivity() {
                 // 检查
                 restoreBackStack()
             }
+
+            else -> parseDeepLink(incoming.data)
+        }
+    }
+
+    private fun parseDeepLink(uri: Uri?) {
+        if (uri == null) return
+        when (uri.path) {
+            "/loginFinish" -> {}
+            "/qrLogin" -> {
+                sendNavigatePageEvent(QRCodeLoginRoute())
+            }
         }
     }
 
@@ -208,7 +222,10 @@ class MainActivity : ComponentActivity() {
      */
     fun initBaiduAnalytics(state: AppSettings.AgreePrivacyPolicyState) {
         baiduAnalyticsSafe {
-            StatService.setAuthorizedState(this, state == AppSettings.AgreePrivacyPolicyState.Agreed)
+            StatService.setAuthorizedState(
+                this,
+                state == AppSettings.AgreePrivacyPolicyState.Agreed
+            )
             StatService.start(this)
         }
     }
