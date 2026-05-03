@@ -14,6 +14,7 @@ import androidx.core.app.ServiceCompat
 import com.imcys.bilibilias.MainActivity
 import com.imcys.bilibilias.R
 import com.imcys.bilibilias.common.utils.DOWNLOAD_NOTIFICATION_CHANNEL_ID
+import com.imcys.bilibilias.common.utils.createDownloadNotificationChannel
 
 
 class DownloadService : Service() {
@@ -25,13 +26,13 @@ class DownloadService : Service() {
     lateinit var notificationCompat: NotificationCompat.Builder
 
     inner class DownloadBinder : Binder() {
-        val service: DownloadService?
+        val service: DownloadService
             get() = this@DownloadService
     }
 
     private val binder = DownloadBinder()
 
-    override fun onBind(intent: Intent?): IBinder? = binder
+    override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // 防止用户突然进后台
@@ -40,6 +41,7 @@ class DownloadService : Service() {
     }
 
     fun startForeground() {
+        createDownloadNotificationChannel()
         // 构造通知
         notificationCompat = buildDownloadFileNotification()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -82,6 +84,8 @@ class DownloadService : Service() {
                 setSmallIcon(R.drawable.ic_logo_mini)
                 setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 setOnlyAlertOnce(true)
+                setOngoing(true)
+                setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             }
         }
 

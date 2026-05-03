@@ -99,4 +99,10 @@ message AppSettings {
   string use_audio_container = 19;
   string nav_back_stack = 20;
   int64 unknown_app_sign_warning_close_time = 21;
+
+  // 最大并行下载数
+  int32 max_concurrent_downloads = 22;
+
+  // 开启后按并发下载数设置 FFmpeg 并发合并，否则固定为 1
+  bool enabled_concurrent_merge = 23;
 }

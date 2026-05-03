@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Hub
@@ -64,6 +65,7 @@ import com.imcys.bilibilias.datastore.AppSettings.AgreePrivacyPolicyState.Refuse
 import com.imcys.bilibilias.ui.PrivacyPolicyDialog
 import com.imcys.bilibilias.ui.PrivacyPolicyRefuseDialog
 import com.imcys.bilibilias.ui.setting.platform.ParsePlatformRoute
+import com.imcys.bilibilias.ui.setting.download.DownloadConfigRoute
 import com.imcys.bilibilias.ui.utils.switchHapticFeedback
 import com.imcys.bilibilias.ui.weight.ASAlertDialog
 import com.imcys.bilibilias.ui.weight.ASTextButton
@@ -100,6 +102,7 @@ fun SettingScreen(
     onToVersionInfo: () -> Unit = {},
     onToSystemExpand: () -> Unit = {},
     onToStorageManagement: () -> Unit = {},
+    onToDownloadConfig: () -> Unit = {},
     onToNamingConvention: () -> Unit = {},
     onToLineConfig: () -> Unit = {},
     onToPage: (navKey: NavKey) -> Unit = {},
@@ -175,18 +178,6 @@ fun SettingScreen(
 
             item {
                 BaseSettingsItem(
-                    painter = rememberVectorPainter(Icons.Outlined.Save),
-                    text = "缓存目录",
-                    descriptionText = "Download/BILIBILIAS",
-                    onClick = {
-                    }
-                )
-            }
-
-
-
-            item {
-                BaseSettingsItem(
                     painter = rememberVectorPainter(Icons.Outlined.Edit),
                     text = "命名规则",
                     descriptionText = "自定义下载文件名称",
@@ -194,6 +185,14 @@ fun SettingScreen(
                 )
             }
 
+            item {
+                BaseSettingsItem(
+                    painter = rememberVectorPainter(Icons.Outlined.Download),
+                    text = "下载配置",
+                    descriptionText = "存储路径和下载设置",
+                    onClick = onToDownloadConfig
+                )
+            }
 
             item {
                 CategorySettingsItem(

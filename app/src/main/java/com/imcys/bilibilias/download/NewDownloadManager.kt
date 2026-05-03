@@ -51,6 +51,7 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -79,7 +80,7 @@ class NewDownloadManager(
     private val subtitleDownloader: SubtitleDownloader
 ) {
     companion object {
-        private const val MAX_CONCURRENT_DOWNLOADS = 1
+        private const val DEFAULT_MAX_CONCURRENT_DOWNLOADS = 1
         private const val QUEUE_CHECK_INTERVAL_MS = 1000L
 
         suspend fun buildRefererUrl(downloadTaskRepository: DownloadTaskRepository, task: AppDownloadTask): String {
@@ -132,8 +133,16 @@ class NewDownloadManager(
 
         val segments = downloadTaskRepository.getSegmentAll().last()
         segments.forEach { segment ->
-            if (segment.downloadState !in listOf(DownloadState.PAUSE, DownloadState.COMPLETED)) {
-                downloadTaskRepository.deleteSegment(segment.segmentId)
+            if (segment.downloadState !in listOf(
+                    DownloadState.PAUSE,
+                    DownloadState.COMPLETED,
+                    DownloadState.CANCELLED,
+                    DownloadState.ERROR
+                )
+            ) {
+                downloadTaskRepository.updateSegment(
+                    segment.copy(downloadState = DownloadState.PAUSE)
+                )
             }
         }
     }
@@ -166,7 +175,7 @@ class NewDownloadManager(
 
     suspend fun pauseTask(segmentId: Long) {
         val task = findTaskById(segmentId) ?: return
-        if (task.downloadState != DownloadState.DOWNLOADING) return
+        if (!task.downloadState.canPause()) return
 
         cancelActiveJob(segmentId)
         updateTaskState(task, DownloadState.PAUSE)
@@ -192,14 +201,15 @@ class NewDownloadManager(
         downloadTaskRepository.updateSegment(task.downloadSegment.copy(downloadState = DownloadState.WAITING))
 
         if (!isDownloading) {
-            isDownloading = true
+            startDownloadQueueService()
+            return
         }
         checkAndStartNextDownload()
     }
 
     suspend fun pauseAllTasks() {
         val downloadingTasks = _downloadTasks.value.filter {
-            it.downloadState in listOf(DownloadState.DOWNLOADING, DownloadState.MERGING)
+            it.downloadState.canPause()
         }
         downloadingTasks.forEach { pauseTask(it.downloadSegment.segmentId) }
     }
@@ -293,33 +303,41 @@ class NewDownloadManager(
     }
 
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
-    private fun checkAndStartNextDownload() {
-        if (activeDownloadJobs.size >= MAX_CONCURRENT_DOWNLOADS) return
+    private suspend fun checkAndStartNextDownload() {
+        val maxConcurrentDownloads = getMaxConcurrentDownloads()
 
-        val nextTask = _downloadTasks.value.firstOrNull {
-            it.downloadState == DownloadState.WAITING &&
-                    !activeDownloadJobs.containsKey(it.downloadSegment.segmentId)
-        } ?: return
+        while (activeDownloadJobs.size < maxConcurrentDownloads) {
+            val nextTask = _downloadTasks.value.firstOrNull {
+                it.downloadState == DownloadState.WAITING &&
+                        !activeDownloadJobs.containsKey(it.downloadSegment.segmentId)
+            } ?: return
 
-        val job = downloadScope.launch {
-            try {
-                executeTaskDownload(nextTask)
-            } catch (e: CancellationException) {
-                // 协程被取消
-            } catch (e: Exception) {
-                handleTaskError(nextTask, e)
-            } finally {
-                activeDownloadJobs.remove(nextTask.downloadSegment.segmentId)
-                checkAndStartNextDownload()
+            val job = downloadScope.launch {
+                try {
+                    executeTaskDownload(nextTask)
+                } catch (e: CancellationException) {
+                    // 协程被取消
+                } catch (e: Exception) {
+                    handleTaskError(nextTask, e)
+                } finally {
+                    activeDownloadJobs.remove(nextTask.downloadSegment.segmentId)
+                    checkAndStartNextDownload()
+                }
             }
-        }
 
-        activeDownloadJobs[nextTask.downloadSegment.segmentId] = job
+            activeDownloadJobs[nextTask.downloadSegment.segmentId] = job
+        }
     }
 
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private suspend fun executeTaskDownload(task: AppDownloadTask) {
         downloadService?.let { service ->
+            service.updateNotification(
+                title = task.downloadSegment.title,
+                text = "准备下载",
+                progress = 0,
+                indeterminate = true
+            )
             // 前置任务
             handlePredecessor(task, service)
 
@@ -332,8 +350,12 @@ class NewDownloadManager(
                 quality = downloadQuality
             }
 
-            // 后置任务
-            handleSuccessor(task, service, quality)
+            if (task.downloadViewInfo.downloadMedia) {
+                // 后置任务
+                handleSuccessor(task, service, quality)
+            } else {
+                completeNonMediaTask(task)
+            }
 
             val finalTask = findTaskById(task.downloadSegment.segmentId)
             if (finalTask?.downloadState == DownloadState.COMPLETED) {
@@ -524,8 +546,10 @@ class NewDownloadManager(
                 task.downloadSegment.namingConventionInfo,
             )
 
+            cleanupMergeRuntimeArtifacts(task)
             updateTaskAndCleanup(task, tempOutputFile)
         } catch (e: Exception) {
+            cleanupMergeRuntimeArtifacts(task)
             tempOutputFile.deleteIfExists()
             throw e
         }
@@ -590,6 +614,25 @@ class NewDownloadManager(
         task.downloadSubTasks.forEach {
             File(it.savePath).deleteIfExists()
         }
+    }
+
+    private fun cleanupMergeRuntimeArtifacts(task: AppDownloadTask) {
+        task.taskRuntimeInfo.subtitles.forEach { subtitle ->
+            File(subtitle.path).deleteIfExists()
+        }
+        if (task.taskRuntimeInfo.coverPath.isNotBlank()) {
+            File(task.taskRuntimeInfo.coverPath).deleteIfExists()
+        }
+        task.updateRuntimeInfo(TaskRuntimeInfo())
+    }
+
+    private suspend fun completeNonMediaTask(task: AppDownloadTask) {
+        val completedTask = task.copy(
+            downloadSegment = task.downloadSegment.copy(downloadState = DownloadState.COMPLETED),
+            downloadState = DownloadState.COMPLETED
+        )
+        downloadTaskRepository.updateSegment(completedTask.downloadSegment)
+        updateTaskState(completedTask, DownloadState.COMPLETED)
     }
 
 
@@ -668,7 +711,10 @@ class NewDownloadManager(
 
         suspend fun processNode(node: DownloadTreeNode) {
             node.segments.forEach { segment ->
-                if (!currentTasks.any { it.downloadSegment.platformId == segment.platformId }) {
+                if (!currentTasks.any { existingTask ->
+                        existingTask.isSameDownloadRequest(segment, downloadViewInfo)
+                    }
+                ) {
                     val downloadSubTasks =
                         createSubTasksForSegment(segment, node.node.nodeType, downloadViewInfo)
                     val cover = getCoverForSegment(segment)
@@ -793,13 +839,60 @@ class NewDownloadManager(
         downloadService: DownloadService,
         stage: String
     ): (Float) -> Unit = { progress ->
-        downloadService.updateNotification(
-            task.downloadSegment.title,
-            stage,
-            (progress * 100).toInt()
-        )
         val state = if (stage == "合并阶段") DownloadState.MERGING else DownloadState.DOWNLOADING
         updateTaskState(task.copy(progress = progress), state)
+        updateDownloadNotification(task, downloadService, stage, progress)
+    }
+
+    private fun updateDownloadNotification(
+        task: AppDownloadTask,
+        downloadService: DownloadService,
+        stage: String,
+        progress: Float
+    ) {
+        if (activeDownloadJobs.size > 1) {
+            downloadService.updateNotification(
+                title = "正在处理下载任务",
+                text = buildParallelNotificationText(),
+                progress = buildParallelNotificationProgress((progress * 100).toInt())
+            )
+            return
+        }
+
+        downloadService.updateNotification(
+            title = task.downloadSegment.title,
+            text = stage,
+            progress = (progress * 100).toInt()
+        )
+    }
+
+    private fun buildParallelNotificationText(): String {
+        val activeTasks = _downloadTasks.value.filter {
+            activeDownloadJobs.containsKey(it.downloadSegment.segmentId)
+        }
+
+        val downloadingCount = activeTasks.count { it.downloadState == DownloadState.DOWNLOADING }
+        val mergingCount = activeTasks.count { it.downloadState == DownloadState.MERGING }
+        val waitingCount = _downloadTasks.value.count { it.downloadState == DownloadState.WAITING }
+
+        return buildList {
+            if (downloadingCount > 0) add("${downloadingCount}个下载中")
+            if (mergingCount > 0) add("${mergingCount}个合并中")
+            if (waitingCount > 0) add("${waitingCount}个等待中")
+        }.joinToString("，").ifEmpty { "正在准备下载任务" }
+    }
+
+    private fun buildParallelNotificationProgress(currentProgress: Int): Int {
+        val activeTasks = _downloadTasks.value.filter {
+            activeDownloadJobs.containsKey(it.downloadSegment.segmentId)
+        }.filter {
+            it.downloadState == DownloadState.DOWNLOADING || it.downloadState == DownloadState.MERGING
+        }
+
+        if (activeTasks.isEmpty()) return currentProgress
+
+        val totalProgress = activeTasks.sumOf { (it.progress * 100).toInt() }
+        return totalProgress / activeTasks.size
     }
 
     private fun findTaskById(segmentId: Long): AppDownloadTask? {
@@ -844,6 +937,41 @@ class NewDownloadManager(
 
     private fun File.deleteIfExists() {
         if (exists()) delete()
+    }
+
+    private fun AppDownloadTask.isSameDownloadRequest(
+        segment: DownloadSegment,
+        downloadViewInfo: DownloadViewInfo
+    ): Boolean {
+        return downloadSegment.platformId == segment.platformId &&
+                this.downloadViewInfo.selectVideoQualityId == downloadViewInfo.selectVideoQualityId &&
+                this.downloadViewInfo.selectVideoCode == downloadViewInfo.selectVideoCode &&
+                this.downloadViewInfo.selectAudioQualityId == downloadViewInfo.selectAudioQualityId &&
+                this.downloadViewInfo.downloadMode == downloadViewInfo.downloadMode &&
+                this.downloadViewInfo.downloadMedia == downloadViewInfo.downloadMedia &&
+                this.downloadViewInfo.downloadCover == downloadViewInfo.downloadCover &&
+                this.downloadViewInfo.downloadDanmaku == downloadViewInfo.downloadDanmaku &&
+                this.downloadViewInfo.downloadCC == downloadViewInfo.downloadCC &&
+                this.downloadViewInfo.embedCover == downloadViewInfo.embedCover &&
+                this.downloadViewInfo.embedDanmaku == downloadViewInfo.embedDanmaku &&
+                this.downloadViewInfo.embedCC == downloadViewInfo.embedCC &&
+                this.downloadViewInfo.ccFileType == downloadViewInfo.ccFileType &&
+                this.downloadViewInfo.selectAudioLanguage == downloadViewInfo.selectAudioLanguage &&
+                this.downloadViewInfo.mediaContainerConfig == downloadViewInfo.mediaContainerConfig
+    }
+
+    private fun DownloadState.canPause(): Boolean {
+        return this in listOf(
+            DownloadState.PRE_TASK,
+            DownloadState.DOWNLOADING,
+            DownloadState.MERGING
+        )
+    }
+
+    private suspend fun getMaxConcurrentDownloads(): Int {
+        return appSettingsRepository.appSettingsFlow.first()
+            .maxConcurrentDownloads
+            .coerceAtLeast(DEFAULT_MAX_CONCURRENT_DOWNLOADS)
     }
 
 

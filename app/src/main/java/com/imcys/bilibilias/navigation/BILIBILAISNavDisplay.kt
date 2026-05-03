@@ -64,6 +64,8 @@ import com.imcys.bilibilias.ui.setting.complaint.ComplaintRoute
 import com.imcys.bilibilias.ui.setting.complaint.ComplaintScreen
 import com.imcys.bilibilias.ui.setting.contract.NamingConventionRoute
 import com.imcys.bilibilias.ui.setting.contract.NamingConventionScreen
+import com.imcys.bilibilias.ui.setting.download.DownloadConfigRoute
+import com.imcys.bilibilias.ui.setting.download.DownloadConfigScreen
 import com.imcys.bilibilias.ui.setting.developer.LineConfigRoute
 import com.imcys.bilibilias.ui.setting.developer.LineConfigScreen
 import com.imcys.bilibilias.ui.setting.expand.SystemExpandRoute
@@ -348,6 +350,7 @@ fun BILIBILAISNavDisplay() {
                         onToVersionInfo = { backStack.addWithReuse(AppVersionInfoRoute) },
                         onToSystemExpand = { backStack.addWithReuse(SystemExpandRoute) },
                         onToStorageManagement = { backStack.addWithReuse(StorageManagementRoute) },
+                        onToDownloadConfig = { backStack.addWithReuse(DownloadConfigRoute) },
                         onToNamingConvention = { backStack.addWithReuse(NamingConventionRoute) },
                         onToLineConfig = { backStack.addWithReuse(LineConfigRoute) },
                         onLogoutFinish = {
@@ -484,6 +487,14 @@ fun BILIBILAISNavDisplay() {
                         onToDownloadList = {
                             backStack.add(DownloadRoute(1))
                         }
+                    )
+                }
+                entry<DownloadConfigRoute>(
+                    metadata = ListDetailSceneStrategy.detailPane()
+                ) {
+                    DownloadConfigScreen(
+                        route = it,
+                        onToBack = onBack
                     )
                 }
                 entry<NamingConventionRoute>(

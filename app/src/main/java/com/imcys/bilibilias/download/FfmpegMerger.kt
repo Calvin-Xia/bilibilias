@@ -3,8 +3,10 @@ package com.imcys.bilibilias.download
 import android.app.Application
 import android.util.Log
 import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.FFmpegKitConfig
 import com.arthenica.ffmpegkit.FFprobeKit
 import com.arthenica.ffmpegkit.ReturnCode
+import com.imcys.bilibilias.BuildConfig
 import com.imcys.bilibilias.database.entity.download.MediaContainer
 import com.imcys.bilibilias.data.model.download.DownloadSubTask
 import com.imcys.bilibilias.data.model.download.MediaContainerConfig
@@ -99,56 +101,62 @@ class FfmpegMerger(
         duration: Long,
         onProgress: (Float) -> Unit
     ) {
-        suspendCancellableCoroutine { continuation ->
-            var lastProgressEmit = 0L
+        try {
+            suspendCancellableCoroutine { continuation ->
+                var lastProgressEmit = 0L
 
-            val session = FFmpegKit.executeAsync(
-                command,
-                { session ->
-                    when {
-                        ReturnCode.isSuccess(session.returnCode) -> {
-                            if (!outputFile.exists() || outputFile.length() == 0L) {
-                                continuation.resumeWithException(Exception("输出文件生成失败"))
-                            } else {
-                                Log.d("FFmpeg", "合并完成: ${outputFile.absolutePath}")
-                                continuation.resume(Unit)
+                val session = FFmpegKit.executeAsync(
+                    command,
+                    { session ->
+                        when {
+                            ReturnCode.isSuccess(session.returnCode) -> {
+                                if (!outputFile.exists() || outputFile.length() == 0L) {
+                                    continuation.resumeWithException(Exception("输出文件生成失败"))
+                                } else {
+                                    Log.d("FFmpeg", "合并完成: ${outputFile.absolutePath}")
+                                    continuation.resume(Unit)
+                                }
+                            }
+
+                            ReturnCode.isCancel(session.returnCode) -> {
+                                outputFile.deleteIfExists()
+                                Log.w("FFmpeg", "任务被取消")
+                                continuation.resumeWithException(CancellationException("任务被取消"))
+                            }
+
+                            else -> {
+                                outputFile.deleteIfExists()
+                                Log.e("FFmpeg", "执行失败: ${session.failStackTrace}")
+                                continuation.resumeWithException(
+                                    Exception("FFmpeg执行失败: ${session.failStackTrace}")
+                                )
                             }
                         }
-
-                        ReturnCode.isCancel(session.returnCode) -> {
-                            outputFile.deleteIfExists()
-                            Log.w("FFmpeg", "任务被取消")
-                            continuation.resumeWithException(CancellationException("任务被取消"))
+                    },
+                    { log ->
+                        if (BuildConfig.DEBUG){
+                            Log.d("FFmpeg", "$log")
                         }
-
-                        else -> {
-                            outputFile.deleteIfExists()
-                            Log.e("FFmpeg", "执行失败: ${session.failStackTrace}")
-                            continuation.resumeWithException(
-                                Exception("FFmpeg执行失败: ${session.failStackTrace}")
-                            )
-                        }
-                    }
-                },
-                { log ->
-                    Log.d("FFmpeg", "${log}")
-                },
-                { statistics ->
-                    if (statistics.time > 0 && duration > 0) {
-                        val now = System.currentTimeMillis()
-                        if (now - lastProgressEmit > 100) {
-                            val progress = (statistics.time.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
-                            onProgress(progress)
-                            lastProgressEmit = now
+                    },
+                    { statistics ->
+                        if (statistics.time > 0 && duration > 0) {
+                            val now = System.currentTimeMillis()
+                            if (now - lastProgressEmit > 100) {
+                                val progress = (statistics.time.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                                onProgress(progress)
+                                lastProgressEmit = now
+                            }
                         }
                     }
+                )
+
+                continuation.invokeOnCancellation {
+                    Log.w("FFmpeg", "协程取消，停止FFmpeg会话")
+                    FFmpegKit.cancel(session.sessionId)
                 }
-            )
-
-            continuation.invokeOnCancellation {
-                Log.w("FFmpeg", "协程取消，停止FFmpeg会话")
-                FFmpegKit.cancel(session.sessionId)
             }
+        } finally {
+            FFmpegKitConfig.clearSessions()
         }
     }
 

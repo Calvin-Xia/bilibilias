@@ -26,6 +26,7 @@ import com.imcys.bilibilias.ui.login.QRCodeLoginViewModel
 import com.imcys.bilibilias.ui.setting.SettingViewModel
 import com.imcys.bilibilias.ui.setting.contract.NamingConventionViewModel
 import com.imcys.bilibilias.ui.setting.developer.LineConfigViewModel
+import com.imcys.bilibilias.ui.setting.download.DownloadConfigViewModel
 import com.imcys.bilibilias.ui.setting.layout.LayoutTypesetViewModel
 import com.imcys.bilibilias.ui.setting.platform.ParsePlatformViewModel
 import com.imcys.bilibilias.ui.setting.roam.RoamViewModel
@@ -79,6 +80,7 @@ val appModule = module {
     viewModelOf(::NamingConventionViewModel)
     viewModelOf(::RequestFrequentViewModel)
     viewModelOf(::LineConfigViewModel)
+    viewModelOf(::DownloadConfigViewModel)
     viewModelOf(::WebParserViewModel)
     viewModelOf(::ParsePlatformViewModel)
     viewModelOf(::CalendarViewModel)

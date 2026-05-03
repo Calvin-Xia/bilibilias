@@ -244,6 +244,25 @@ class AppSettingsRepository(
             }
         }
     }
+
+    suspend fun updateMaxConcurrentDownloads(maxConcurrentDownloads: Int) {
+        dataStore.updateData { currentSettings ->
+            currentSettings.copy {
+                this.maxConcurrentDownloads = maxConcurrentDownloads
+                if (maxConcurrentDownloads <= 1) {
+                    enabledConcurrentMerge = false
+                }
+            }
+        }
+    }
+
+    suspend fun updateEnabledConcurrentMerge(enabled: Boolean) {
+        dataStore.updateData { currentSettings ->
+            currentSettings.copy {
+                enabledConcurrentMerge = enabled && maxConcurrentDownloads > 1
+            }
+        }
+    }
 }
 
 

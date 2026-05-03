@@ -27,6 +27,8 @@ object AppSettingsSerializer : Serializer<AppSettings> {
         .setVideoParsePlatform(AppSettings.VideoParsePlatform.Web)
         .setUseVideoContainer("mp4")
         .setUseAudioContainer("m4a")
+        .setMaxConcurrentDownloads(1)
+        .setEnabledConcurrentMerge(false)
         .build()
 
 
@@ -65,6 +67,14 @@ object AppSettingsSerializer : Serializer<AppSettings> {
             }
             if (parsed.useAudioContainer.isNullOrEmpty() || parsed.useAudioContainer !in validAudioContainers){
                 builder.setUseAudioContainer(defaultValue.useAudioContainer)
+                modified = true
+            }
+            if (parsed.maxConcurrentDownloads <= 0){
+                builder.setMaxConcurrentDownloads(defaultValue.maxConcurrentDownloads)
+                modified = true
+            }
+            if (parsed.maxConcurrentDownloads <= 1 && parsed.enabledConcurrentMerge) {
+                builder.setEnabledConcurrentMerge(false)
                 modified = true
             }
             return if (modified) builder.build() else parsed
