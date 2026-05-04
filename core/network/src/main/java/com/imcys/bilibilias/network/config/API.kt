@@ -137,4 +137,9 @@ object API {
         }
 
     }
+
+    object Github{
+        const val API_BASE_URL = "https://api.github.com/"
+        const val COMMITS = "${API_BASE_URL}repos/%s/%s/commits"
+    }
 }

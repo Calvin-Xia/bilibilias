@@ -4,7 +4,9 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.dataStoreFile
 import com.imcys.bilibilias.agent.functions.BILIAnalysisAppFunctions
+import com.imcys.bilibilias.BuildConfig
 import com.imcys.bilibilias.common.shizuku.ShizukuStateManager
+import com.imcys.bilibilias.firebase.FirebaseNetworkPerformanceTracer
 import com.imcys.bilibilias.datastore.AppSettings
 import com.imcys.bilibilias.datastore.AppSettingsSerializer
 import com.imcys.bilibilias.download.DownloadExecutor
@@ -43,6 +45,7 @@ import com.imcys.bilibilias.ui.user.folder.UserFolderViewModel
 import com.imcys.bilibilias.ui.user.history.UserPlayHistoryViewModel
 import com.imcys.bilibilias.ui.user.like.LikeVideoViewModel
 import com.imcys.bilibilias.ui.user.work.WorkListViewModel
+import com.imcys.bilibilias.network.plugin.NetworkPerformanceTracer
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
@@ -53,6 +56,9 @@ import org.koin.dsl.module
 val appModule = module {
     single { androidContext().assets }
     single { androidContext().contentResolver }
+    single<NetworkPerformanceTracer> {
+        FirebaseNetworkPerformanceTracer()
+    }
     single<DataStore<AppSettings>> {
         DataStoreFactory.create(AppSettingsSerializer) {
             androidContext().dataStoreFile("app_setting.pb")
@@ -91,7 +97,7 @@ val appModule = module {
     single { VideoInfoFetcher(get(), get(), get()) }
     single { FileOutputManager(androidApplication()) }
     single { DownloadExecutor(get(qualifier = named("DownloadHttpClient")), get()) }
-    single { FfmpegMerger(androidApplication(),get()) }
+    single { FfmpegMerger(androidApplication(), get()) }
     single { NamingConventionHandler(get()) }
     single { SubtitleDownloader(get(), get(), androidApplication()) }
 

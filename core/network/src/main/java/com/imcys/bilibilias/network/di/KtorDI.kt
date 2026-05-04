@@ -8,12 +8,14 @@ import com.imcys.bilibilias.network.BuildConfig
 import com.imcys.bilibilias.network.config.BILIBILI_URL
 import com.imcys.bilibilias.network.config.REFERER
 import com.imcys.bilibilias.network.plugin.AutoBILIInfoPlugin
+import com.imcys.bilibilias.network.plugin.FirebasePerfPlugin
 import com.imcys.bilibilias.network.plugin.RiskControlPlugin
 import com.imcys.bilibilias.network.plugin.RoamPlugin
 import com.imcys.bilibilias.network.service.AppAPIService
 import com.imcys.bilibilias.network.service.BILIBILITVAPIService
 import com.imcys.bilibilias.network.service.BILIBILIWebAPIService
 import com.imcys.bilibilias.network.service.BgmAPIService
+import com.imcys.bilibilias.network.service.GithubAPIService
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.BrowserUserAgent
@@ -105,6 +107,9 @@ val netWorkModule = module {
             install(HttpCookies) {
                 storage = get<AsCookiesStorage>()
             }
+            install(FirebasePerfPlugin) {
+                tracer = get()
+            }
             if (BuildConfig.DEBUG) {
                 install(Logging) {
                     logger = object : Logger {
@@ -176,8 +181,8 @@ val netWorkModule = module {
         }
     }
 
-    // Bgm的网络请求不装任何业务插件
-    single(qualifier = named("BgmHttpClient")) {
+    //统用的网络请求不装任何业务插件
+    single(qualifier = named("CommonApiHttpClient")) {
         HttpClient(CIO) {
             BrowserUserAgent()
             install(HttpTimeout) {
@@ -196,7 +201,7 @@ val netWorkModule = module {
                 install(Logging) {
                     logger = object : Logger {
                         override fun log(message: String) {
-                            Log.d("BgmKtor", message)
+                            Log.d("CommonApiKtor", message)
                         }
                     }
                     level = LogLevel.HEADERS
@@ -221,6 +226,10 @@ val netWorkModule = module {
     }
     // BgmAPI
     single {
-        BgmAPIService(get(qualifier = named("BgmHttpClient")))
+        BgmAPIService(get(qualifier = named("CommonApiHttpClient")))
+    }
+    // GithubAPI
+    single {
+        GithubAPIService(get(qualifier = named("CommonApiHttpClient")))
     }
 }

@@ -98,5 +98,6 @@ class BILIBILIASApplication : Application(), AppFunctionConfiguration.Provider {
 
     private fun initBuildConfig() {
         CommonBuildConfig.enabledAnalytics = BuildConfig.ENABLED_ANALYTICS
+        CommonBuildConfig.gitCommitHash = BuildConfig.GIT_COMMIT_HASH
     }
 }
