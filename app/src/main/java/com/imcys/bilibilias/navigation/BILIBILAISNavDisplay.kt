@@ -19,6 +19,7 @@ import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneSt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -31,13 +32,15 @@ import androidx.navigation3.runtime.serialization.NavBackStackSerializer
 import androidx.navigation3.runtime.serialization.NavKeySerializer
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigation3.ui.NavDisplay
-import com.imcys.bilibilias.common.event.analysisHandleChannel
 import com.imcys.bilibilias.common.event.NavigatePageMode
+import com.imcys.bilibilias.common.event.analysisHandleChannel
 import com.imcys.bilibilias.common.event.navigatePageEventFlow
 import com.imcys.bilibilias.common.event.playVoucherErrorChannel
 import com.imcys.bilibilias.common.event.requestFrequentHandleChannel
 import com.imcys.bilibilias.common.event.restoreBackStackEventFlow
 import com.imcys.bilibilias.common.event.saveBackStackChannel
+import com.imcys.bilibilias.common.utils.FirebaseExt.logOpenAppPage
+import com.imcys.bilibilias.common.utils.FirebaseExt.logRestoreBackStack
 import com.imcys.bilibilias.data.repository.AppSettingsRepository
 import com.imcys.bilibilias.ui.analysis.AnalysisScreen
 import com.imcys.bilibilias.ui.analysis.navigation.AnalysisRoute
@@ -64,10 +67,10 @@ import com.imcys.bilibilias.ui.setting.complaint.ComplaintRoute
 import com.imcys.bilibilias.ui.setting.complaint.ComplaintScreen
 import com.imcys.bilibilias.ui.setting.contract.NamingConventionRoute
 import com.imcys.bilibilias.ui.setting.contract.NamingConventionScreen
-import com.imcys.bilibilias.ui.setting.download.DownloadConfigRoute
-import com.imcys.bilibilias.ui.setting.download.DownloadConfigScreen
 import com.imcys.bilibilias.ui.setting.developer.LineConfigRoute
 import com.imcys.bilibilias.ui.setting.developer.LineConfigScreen
+import com.imcys.bilibilias.ui.setting.download.DownloadConfigRoute
+import com.imcys.bilibilias.ui.setting.download.DownloadConfigScreen
 import com.imcys.bilibilias.ui.setting.expand.SystemExpandRoute
 import com.imcys.bilibilias.ui.setting.expand.SystemExpandScreen
 import com.imcys.bilibilias.ui.setting.layout.LayoutTypesetRoute
@@ -108,9 +111,7 @@ import com.imcys.bilibilias.ui.user.work.WorkListRoute
 import com.imcys.bilibilias.ui.user.work.WorkListScreen
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
-import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
-import kotlin.collections.listOf
 
 /**
  * BILIBILAIS导航显示组件
@@ -167,8 +168,16 @@ fun BILIBILAISNavDisplay() {
                 backStack.clear()
                 backStack.addAll(stack)
                 settingsRepository.updateNavBackStack("")
+                logRestoreBackStack(stack.lastOrNull())
             }
         }
+    }
+
+    LaunchedEffect(backStack) {
+        snapshotFlow { backStack.lastOrNull() }
+            .collect { navKey ->
+                navKey?.let(::logOpenAppPage)
+            }
     }
 
 

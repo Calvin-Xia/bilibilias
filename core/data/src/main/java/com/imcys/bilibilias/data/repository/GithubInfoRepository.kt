@@ -2,10 +2,8 @@ package com.imcys.bilibilias.data.repository
 
 import com.imcys.bilibilias.common.data.CommonBuildConfig
 import com.imcys.bilibilias.data.model.github.GithubCodeVersionUpdateInfo
-import com.imcys.bilibilias.network.NetWorkResult
 import com.imcys.bilibilias.network.mapData
 import com.imcys.bilibilias.network.service.GithubAPIService
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class GithubInfoRepository(
@@ -13,8 +11,7 @@ class GithubInfoRepository(
 ) {
     suspend fun getLastCommitInfo() =
         githubAPIService.getCommits("1250422131", "bilibilias").map { result ->
-            result.mapData { commits, response ->
-                // 防御：空列表处理
+            result.mapData { commits, _ ->
                 if (commits.isNullOrEmpty()) {
                     return@mapData GithubCodeVersionUpdateInfo(
                         hasUpdate = false,
@@ -26,7 +23,6 @@ class GithubInfoRepository(
                 // 提取当前版本的短 hash，避免重复 substring
                 val currentShortHash = CommonBuildConfig.gitCommitHash.take(8)
 
-                // 单次遍历：同时查找索引和确认存在性
                 val currentCommitIndex = commits.indexOfFirst {
                     it.sha.take(8) == currentShortHash
                 }

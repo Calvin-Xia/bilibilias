@@ -62,6 +62,7 @@ import androidx.navigation3.runtime.NavKey
 import com.baidu.mobstat.StatService
 import com.imcys.bilibilias.BuildConfig
 import com.imcys.bilibilias.R
+import com.imcys.bilibilias.common.utils.openLink
 import com.imcys.bilibilias.datastore.AppSettings
 import com.imcys.bilibilias.datastore.AppSettings.AgreePrivacyPolicyState.Agreed
 import com.imcys.bilibilias.datastore.AppSettings.AgreePrivacyPolicyState.Refuse
@@ -117,7 +118,6 @@ fun SettingScreen(
     val vm = koinViewModel<SettingViewModel>()
     val lastGitCommitInfo by vm.lastGitCommitInfo.collectAsStateWithLifecycle()
     val appSettings by vm.appSettings.collectAsStateWithLifecycle(initialValue = AppSettings.getDefaultInstance())
-    val haptics = LocalHapticFeedback.current
     var showLogoutDialog by remember { mutableStateOf(false) }
     val uiState by vm.uiState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
@@ -211,7 +211,6 @@ fun SettingScreen(
                     description = "使用桌面壁纸颜色作为主题",
                     checked = appSettings.enabledDynamicColor,
                 ) { check ->
-                    haptics.switchHapticFeedback(check)
                     vm.updateEnabledDynamicColor(check)
                 }
             }
@@ -303,16 +302,22 @@ fun SettingScreen(
             item {
                 BaseSettingsItem(
                     painter = rememberVectorPainter(Icons.Outlined.Update),
-                    text = "版本检测",
+                    text = "版本跟踪",
                     description = {
-                        if (lastGitCommitInfo.status == ApiStatus.SUCCESS) {
-                            Text("${lastGitCommitInfo.data?.tipMsg}")
-                        } else {
-                            Text("正在检查可用版本中...")
+                        when (lastGitCommitInfo.status) {
+                            ApiStatus.SUCCESS -> {
+                                Text("${lastGitCommitInfo.data?.tipMsg}")
+                            }
+                            ApiStatus.ERROR -> {
+                                Text("网络异常，无法跟踪版本")
+                            }
+                            else -> {
+                                Text("正在检查可用版本中...")
+                            }
                         }
                     },
                     onClick = {
-
+                        context.openLink("https://github.com/1250422131/bilibilias")
                     }
                 )
             }

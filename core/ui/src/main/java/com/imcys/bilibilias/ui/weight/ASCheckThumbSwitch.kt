@@ -4,6 +4,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxColors
 import androidx.compose.material3.CheckboxDefaults
@@ -14,6 +15,8 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Modifier.Companion
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.imcys.bilibilias.ui.utils.switchHapticFeedback
 
 @Composable
 fun ASCheckThumbSwitch(
@@ -24,9 +27,13 @@ fun ASCheckThumbSwitch(
     colors: SwitchColors = SwitchDefaults.colors(),
     interactionSource: MutableInteractionSource? = null,
 ) {
+    val haptics = LocalHapticFeedback.current
     Switch(
         checked = checked,
-        onCheckedChange = onCheckedChange,
+        onCheckedChange = {
+            onCheckedChange?.invoke(it)
+            haptics.switchHapticFeedback(it)
+        },
         thumbContent = if (checked) {
             {
                 Icon(
@@ -36,7 +43,13 @@ fun ASCheckThumbSwitch(
                 )
             }
         } else {
-            null
+            {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                )
+            }
         },
         modifier = modifier,
         enabled = enabled,

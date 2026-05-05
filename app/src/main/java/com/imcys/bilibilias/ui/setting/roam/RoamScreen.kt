@@ -251,7 +251,7 @@ private fun RoamSettingNoLoginTip(onGoToQRCodeLogin: (LoginPlatform) -> Unit) {
             enabledPadding = false
         ) {
             Row(
-                Modifier.fillMaxWidth(),
+                Modifier.fillMaxWidth().padding(start = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(

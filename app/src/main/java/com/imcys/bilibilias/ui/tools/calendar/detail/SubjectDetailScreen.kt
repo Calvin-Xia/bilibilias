@@ -98,6 +98,7 @@ import com.imcys.bilibilias.common.uimodel.DonghuaPlayPlatform
 import com.imcys.bilibilias.common.uimodel.DonghuaPlayTV
 import com.imcys.bilibilias.common.uimodel.playProgramList
 import com.imcys.bilibilias.common.uimodel.playTVList
+import com.imcys.bilibilias.common.utils.FirebaseExt.logOpenSubjectDetail
 import com.imcys.bilibilias.network.ApiStatus
 import com.imcys.bilibilias.network.NetWorkResult
 import com.imcys.bilibilias.network.model.bgm.BgmEpisodeList
@@ -136,6 +137,7 @@ fun SubjectDetailScreen(
     val density = LocalDensity.current
     LaunchedEffect(subjectDetailRoute.subjectId) {
         vm.loadSubjectDetail(subjectDetailRoute.subjectId)
+        logOpenSubjectDetail(subjectDetailRoute.subjectId)
     }
 
     var minHeightPx by remember { mutableFloatStateOf(0f) }

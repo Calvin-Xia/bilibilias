@@ -47,6 +47,7 @@ import com.baidu.mobstat.StatService
 import com.imcys.bilibilias.common.data.CommonBuildConfig
 import com.imcys.bilibilias.common.event.restoreBackStack
 import com.imcys.bilibilias.common.event.sendNavigatePageEvent
+import com.imcys.bilibilias.common.utils.FirebaseExt.logShareParse
 import com.imcys.bilibilias.common.utils.analyticsSafe
 import com.imcys.bilibilias.common.utils.baiduAnalyticsSafe
 import com.imcys.bilibilias.ui.analysis.navigation.AnalysisRoute
@@ -168,6 +169,7 @@ class MainActivity : ComponentActivity() {
         when (action) {
             Intent.ACTION_SEND -> {
                 if (type?.startsWith("text/") == true) {
+                    logShareParse()
                     val sharedText = incoming.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
                     sendAnalysisEvent(AnalysisEvent(analysisText = sharedText))
                 }
