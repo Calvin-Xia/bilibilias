@@ -5,7 +5,14 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.imcys.bilibilias.BuildConfig
 import com.imcys.bilibilias.common.data.CommonBuildConfig
 import com.imcys.bilibilias.common.event.sendToastEventOnBlocking
@@ -17,15 +24,15 @@ import kotlin.system.exitProcess
 
 fun Context.openLink(url: String) {
     if (url.isEmpty()) return
-   try {
-       val intent = Intent().apply {
-           action = "android.intent.action.VIEW"
-           data = url.toUri()
-       }
-       startActivity(intent)
-   } catch (e: Exception) {
-         Toast.makeText(this, "无法打开链接", Toast.LENGTH_SHORT).show()
-   }
+    try {
+        val intent = Intent().apply {
+            action = "android.intent.action.VIEW"
+            data = url.toUri()
+        }
+        startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(this, "无法打开链接", Toast.LENGTH_SHORT).show()
+    }
 }
 
 fun String.copyText(context: Context, title: String) {
@@ -87,7 +94,6 @@ fun isEnabledAnalytics(): Boolean {
 }
 
 
-
 fun restartApp(context: Context) {
     val packageManager = context.packageManager
     val intent = packageManager.getLaunchIntentForPackage(context.packageName)
@@ -97,3 +103,6 @@ fun restartApp(context: Context) {
     context.startActivity(mainIntent)
     exitProcess(0)
 }
+
+fun String.stripNewlines(replacement: String = " "): String =
+    replace(Regex("[\\r\\n]+"), replacement)

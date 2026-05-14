@@ -1,13 +1,17 @@
 package com.imcys.bilibilias.ui.analysis
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.imcys.bilibilias.common.event.AnalysisEvent
 import com.imcys.bilibilias.common.event.sendAnalysisEvent
 import com.imcys.bilibilias.common.event.sendToastEvent
 import com.imcys.bilibilias.common.utils.AsRegexUtil
-import com.imcys.bilibilias.common.utils.FirebaseExt
+import com.imcys.bilibilias.common.utils.firebase.FirebaseExt
 import com.imcys.bilibilias.common.utils.TextType
 import com.imcys.bilibilias.common.utils.toHttps
 import com.imcys.bilibilias.data.model.download.CCFileType
@@ -194,15 +198,30 @@ class AnalysisViewModel(
             sendToastEvent("图片链接不能为空")
             return@withContext
         }
+        if (
+            Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            sendToastEvent("请先授予存储权限后再保存图片")
+            return@withContext
+        }
         val type = imageUrl.substringAfterLast(".")
-        downloadManager.downloadImageToAlbum(
-            imageUrl, when (val result = _uiState.value.asLinkResultType) {
-                is ASLinkResultType.BILI.Donghua -> "${result.currentEpId}_pic.${type}"
-                is ASLinkResultType.BILI.Video -> "${result.viewInfo.data?.cid}_pic.${type}"
-                else -> "${System.currentTimeMillis()}.${type}"
-            }, saveDirName
-        )
-        sendToastEvent("保存成功")
+        runCatching {
+            downloadManager.downloadImageToAlbum(
+                imageUrl, when (val result = _uiState.value.asLinkResultType) {
+                    is ASLinkResultType.BILI.Donghua -> "${result.currentEpId}_pic.${type}"
+                    is ASLinkResultType.BILI.Video -> "${result.viewInfo.data?.cid}_pic.${type}"
+                    else -> "${System.currentTimeMillis()}.${type}"
+                }, saveDirName
+            )
+        }.onSuccess {
+            sendToastEvent("保存成功")
+        }.onFailure {
+            sendToastEvent("保存失败，请检查存储权限")
+        }
     }
 
     /**

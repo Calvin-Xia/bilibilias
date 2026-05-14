@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -18,6 +20,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -63,77 +66,80 @@ fun UserPlayHistoryScreen(userPlayHistoryRoute: UserPlayHistoryRoute, onToBack: 
 @Composable
 fun UserPlayHistoryContent(
     itemList: LazyPagingItems<BILIUserHistoryPlayModel>,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
 ) {
-    LazyVerticalGrid(
+    PullToRefreshBox(
         modifier = Modifier
             .padding(paddingValues)
-            .padding(vertical = 5.dp, horizontal = 10.dp)
             .fillMaxSize(),
-        columns = GridCells.Fixed(2),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+        isRefreshing = itemList.loadState.refresh is LoadState.Loading,
+        onRefresh = { itemList.refresh() }) {
+        LazyVerticalGrid(
+            modifier = Modifier
+                .padding(vertical = 5.dp, horizontal = 10.dp),
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(itemList.itemCount, key = { index ->
+                val item = itemList[index]
+                item?.history?.bvid?.ifBlank { "empty_$index" } ?: "empty_$index"
+            }) { index ->
+                itemList[index]?.let { item ->
+                    HistoryPlayVideoCard(
+                        modifier = Modifier.animateItem(),
+                        bvId = item.history.bvid,
+                        title = item.title,
+                        pic = "${item.cover.toHttps().width(672).height(378).crop()}",
+                        upName = item.authorName,
+                        mid = item.authorMid,
+                        duration = item.duration,
+                        progress = item.progress,
+                    )
+                }
 
-
-        items(itemList.itemCount, key = { index ->
-            val item = itemList[index]
-            item?.history?.bvid?.ifBlank { "empty_$index" } ?: "empty_$index"
-        }) { index ->
-            itemList[index]?.let { item ->
-                HistoryPlayVideoCard(
-                    modifier = Modifier.animateItem(),
-                    bvId = item.history.bvid,
-                    title = item.title,
-                    pic = "${item.cover.toHttps().width(672).height(378).crop()}",
-                    upName = item.authorName,
-                    mid = item.authorMid,
-                    duration = item.duration,
-                    progress = item.progress,
-                )
             }
 
-        }
 
+            when (val state = itemList.loadState.refresh) {
+                is LoadState.Error -> {
+                    item(span = { GridItemSpan(2) }) {
+                        CommonError(errorMsg = "加载失败 \n ${state.error}", onRetry = {
+                            itemList.refresh()
+                        })
+                    }
+                }
 
-        when (val state = itemList.loadState.refresh) {
-            is LoadState.Error -> {
-                item(span = { GridItemSpan(2) }) {
-                    CommonError(errorMsg = "加载失败 \n ${state.error}", onRetry = {
-                        itemList.refresh()
+                is LoadState.Loading -> {
+                    historyPlayCardListLoading()
+                }
+
+                else -> {}
+            }
+
+            when (val append = itemList.loadState.append) {
+                LoadState.Loading -> item(span = { GridItemSpan(2) }) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        ContainedLoadingIndicator()
+                    }
+                }
+
+                is LoadState.Error -> item(span = { GridItemSpan(2) }) {
+                    CommonError("加载失败 \n ${append.error}", onRetry = {
+                        itemList.retry()
                     })
                 }
+
+                else -> Unit
             }
 
-            is LoadState.Loading -> {
-                historyPlayCardListLoading()
-            }
 
-            else -> {}
         }
-
-        when (val append = itemList.loadState.append) {
-            LoadState.Loading -> item(span = { GridItemSpan(2) }) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    ContainedLoadingIndicator()
-                }
-            }
-
-            is LoadState.Error -> item(span = { GridItemSpan(2) }) {
-                CommonError("加载失败 \n ${append.error}", onRetry = {
-                    itemList.retry()
-                })
-            }
-
-            else -> Unit
-        }
-
-
     }
 }
 

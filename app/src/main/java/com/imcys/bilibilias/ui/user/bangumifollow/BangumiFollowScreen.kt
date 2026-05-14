@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -102,67 +103,72 @@ fun BangumiFollowContent(
     paddingValues: PaddingValues,
     itemList: LazyPagingItems<BILIUserBangumiFollowInfo.ItemData>
 ) {
-
-    LazyVerticalGrid(
+    PullToRefreshBox(
         modifier = Modifier
             .padding(paddingValues)
-            .padding(vertical = 5.dp, horizontal = 10.dp),
-        columns = GridCells.Fixed(1),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        items(itemList.itemCount, key = {
-            itemList[it]?.seasonId ?: it
-        }) {
-            itemList[it]?.let { item ->
-                BangumiCard(
-                    seasonId = item.seasonId,
-                    title = item.title,
-                    intro = item.evaluate,
-                    updateInfo = item.newEp.indexShow ?: "",
-                    seenInfo = item.progress,
-                    pic = "${item.cover.toHttps().width(308).height(410).crop()}"
-                )
+            .fillMaxSize(),
+        isRefreshing = itemList.loadState.refresh is LoadState.Loading,
+        onRefresh = { itemList.refresh() }) {
+        LazyVerticalGrid(
+            modifier = Modifier
+                .padding(vertical = 5.dp, horizontal = 10.dp),
+            columns = GridCells.Fixed(1),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(itemList.itemCount, key = {
+                itemList[it]?.seasonId ?: it
+            }) {
+                itemList[it]?.let { item ->
+                    BangumiCard(
+                        seasonId = item.seasonId,
+                        title = item.title,
+                        intro = item.evaluate,
+                        updateInfo = item.newEp.indexShow ?: "",
+                        seenInfo = item.progress,
+                        pic = "${item.cover.toHttps().width(308).height(410).crop()}"
+                    )
+                }
+
             }
 
-        }
+            when (val state = itemList.loadState.refresh) {
+                is LoadState.Error -> {
+                    item {
+                        CommonError(errorMsg = "加载失败 \n ${state.error}", onRetry = {
+                            itemList.refresh()
+                        })
+                    }
+                }
 
-        when (val state = itemList.loadState.refresh) {
-            is LoadState.Error -> {
-                item {
-                    CommonError(errorMsg = "加载失败 \n ${state.error}", onRetry = {
-                        itemList.refresh()
+                is LoadState.Loading -> {
+                    bangumiCardListLoading()
+                }
+
+                else -> {}
+            }
+
+            when (val append = itemList.loadState.append) {
+                LoadState.Loading -> item(span = { GridItemSpan(1) }) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        ContainedLoadingIndicator()
+                    }
+                }
+
+                is LoadState.Error -> item(span = { GridItemSpan(1) }) {
+                    CommonError("加载失败 \n ${append.error}", onRetry = {
+                        itemList.retry()
                     })
                 }
+
+                else -> Unit
             }
 
-            is LoadState.Loading -> {
-                bangumiCardListLoading()
-            }
-
-            else -> {}
         }
-
-        when (val append = itemList.loadState.append) {
-            LoadState.Loading -> item(span = { GridItemSpan(1) }) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    ContainedLoadingIndicator()
-                }
-            }
-
-            is LoadState.Error -> item(span = { GridItemSpan(1) }) {
-                CommonError("加载失败 \n ${append.error}", onRetry = {
-                    itemList.retry()
-                })
-            }
-
-            else -> Unit
-        }
-
     }
 }
 

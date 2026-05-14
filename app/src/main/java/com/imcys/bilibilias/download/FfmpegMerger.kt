@@ -7,6 +7,7 @@ import com.arthenica.ffmpegkit.FFmpegKitConfig
 import com.arthenica.ffmpegkit.FFprobeKit
 import com.arthenica.ffmpegkit.ReturnCode
 import com.imcys.bilibilias.BuildConfig
+import com.imcys.bilibilias.common.utils.stripNewlines
 import com.imcys.bilibilias.database.entity.download.MediaContainer
 import com.imcys.bilibilias.data.model.download.DownloadSubTask
 import com.imcys.bilibilias.data.model.download.MediaContainerConfig
@@ -187,8 +188,6 @@ class FfmpegMerger(
         return buildList {
             // 基础参数
             add("-y")
-            add("-strict")
-            add("-2")
 
             // 输入文件
             mediaInputs.forEach {
@@ -266,10 +265,10 @@ class FfmpegMerger(
             }
 
             add("-metadata")
-            add("title=\"${task.downloadSegment.title}\"")
+            add("title=\"${task.downloadSegment.title.ffmepgContentSafe()}\"")
 
             add("-metadata")
-            add("description=\"${task.downloadTask.description}\"")
+            add("description=\"${task.downloadTask.description.ffmepgContentSafe()}\"")
 
             add("-metadata")
             add("copyright=\"${NewDownloadManager.buildRefererUrl(downloadTaskRepository, task)}\"")
@@ -278,6 +277,10 @@ class FfmpegMerger(
         }.joinToString(" ") { it }.also {
             Log.d("FFmpeg", "执行命令: $it")
         }
+    }
+
+    private fun String.ffmepgContentSafe(): String {
+       return this.stripNewlines().escape()
     }
 
     private fun String.escape(): String = when {

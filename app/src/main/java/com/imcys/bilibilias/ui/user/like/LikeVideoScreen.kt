@@ -1,7 +1,6 @@
 package com.imcys.bilibilias.ui.user.like
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -16,13 +15,16 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.Immutable
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.imcys.bilibilias.common.utils.toHttps
 import com.imcys.bilibilias.network.ApiStatus
@@ -39,7 +41,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @Serializable
 @Immutable
-data class LikeVideoRoute(val mid: Long,val type: LikePageType) : NavKey
+data class LikeVideoRoute(val mid: Long, val type: LikePageType) : NavKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,16 +49,21 @@ fun LikeVideoScreen(likeVideoRoute: LikeVideoRoute, onToBack: () -> Unit) {
     val scrollBehavior =
         TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val vm = koinViewModel<LikeVideoViewModel>()
+    val uiState by vm.uiState.collectAsStateWithLifecycle()
     val likeVideoList by vm.likeVideoList.collectAsStateWithLifecycle()
+    var firstOpen by remember { mutableStateOf(true) }
 
-    LaunchedEffect(likeVideoRoute.mid,likeVideoRoute.type) {
-        vm.initMid(likeVideoRoute.mid,likeVideoRoute.type)
+    LifecycleResumeEffect(likeVideoRoute.mid, likeVideoRoute.type) {
+        vm.initMid(likeVideoRoute.mid, likeVideoRoute.type, !firstOpen)
+        if (firstOpen) firstOpen = false
+        onPauseOrDispose {}
     }
 
-    LikeVideoScaffold(likeVideoRoute.type,scrollBehavior, onToBack = onToBack) { paddingValues ->
+    LikeVideoScaffold(likeVideoRoute.type, scrollBehavior, onToBack = onToBack) { paddingValues ->
         LikeVideoContent(
             likeVideoList,
             paddingValues,
+            uiState.isDataUpdating,
         )
     }
 }
@@ -64,7 +71,8 @@ fun LikeVideoScreen(likeVideoRoute: LikeVideoRoute, onToBack: () -> Unit) {
 @Composable
 fun LikeVideoContent(
     likeVideoList: NetWorkResult<BILIUserVideoLikeInfo?>,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    dataUpdating: Boolean
 ) {
     LazyVerticalGrid(
         modifier = Modifier
@@ -76,7 +84,7 @@ fun LikeVideoContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
 
-        if (likeVideoList.status == ApiStatus.LOADING) {
+        if (likeVideoList.status == ApiStatus.LOADING && !dataUpdating) {
             userWorkCardListLoading()
         }
 
@@ -86,14 +94,17 @@ fun LikeVideoContent(
             }
         }
 
-        items(likeVideoList.data?.list ?: emptyList(), key = { it.cid ?: it.bvid}) { item ->
+        items(likeVideoList.data?.list ?: emptyList(), key = { it.cid ?: it.bvid }) { item ->
             UserWorkCard(
                 modifier = Modifier.animateItem(),
                 bvId = item.bvid,
                 title = item.title,
-                pic = "${item.pic.toHttps()
-                    
-                }@672w_378h_1c",
+                pic = item.pic
+                    .width(672)
+                    .height(378)
+                    .crop()
+                    .toHttps()
+                    .toString(),
                 upName = item.owner.name,
                 mid = item.owner.mid,
                 view = item.stat.view,
@@ -102,7 +113,6 @@ fun LikeVideoContent(
         }
     }
 }
-
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,10 +135,12 @@ private fun LikeVideoScaffold(
                 scrollBehavior = scrollBehavior,
                 style = BILIBILIASTopAppBarStyle.Large,
                 title = {
-                    Text(text = when(pageType){
-                        LikePageType.LIKE -> "点赞"
-                        LikePageType.COIN -> "投币"
-                    })
+                    Text(
+                        text = when (pageType) {
+                            LikePageType.LIKE -> "点赞"
+                            LikePageType.COIN -> "投币"
+                        }
+                    )
                 },
                 navigationIcon = {
                     AsBackIconButton(onClick = {

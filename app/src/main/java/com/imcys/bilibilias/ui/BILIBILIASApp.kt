@@ -1,9 +1,16 @@
 package com.imcys.bilibilias.ui
 
 import android.annotation.SuppressLint
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.text.method.LinkMovementMethod
 import android.widget.TextView
+import androidx.activity.BackEventCompat
+import androidx.activity.compose.PredictiveBackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -47,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,15 +65,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.text.HtmlCompat
 import com.imcys.bilibilias.R
 import com.imcys.bilibilias.common.event.ToastEvent
 import com.imcys.bilibilias.common.event.loginErrorChannel
 import com.imcys.bilibilias.common.event.toastEventFlow
+import com.imcys.bilibilias.common.event.sendToastEventOnBlocking
 import com.imcys.bilibilias.datastore.AppSettings.AgreePrivacyPolicyState.Agreed
 import com.imcys.bilibilias.datastore.AppSettings.AgreePrivacyPolicyState.Refuse
 import com.imcys.bilibilias.navigation.BILIBILAISNavDisplay
+import com.imcys.bilibilias.ui.utils.DialogSortBuilder
+import com.imcys.bilibilias.ui.utils.DialogSortHost
 import com.imcys.bilibilias.ui.weight.ASAlertDialog
 import com.imcys.bilibilias.ui.weight.ASIconButton
 import com.imcys.bilibilias.ui.weight.ASTextButton
@@ -73,6 +85,7 @@ import com.imcys.bilibilias.ui.weight.ASTopAppBar
 import com.imcys.bilibilias.ui.weight.BILIBILIASTopAppBarStyle
 import com.imcys.bilibilias.weight.Konfetti
 import com.imcys.bilibilias.weight.rememberKonfettiState
+import kotlinx.coroutines.flow.Flow
 import org.koin.androidx.compose.koinViewModel
 
 
@@ -127,19 +140,19 @@ private fun MainScaffold() {
                     ) {
                         BILIBILAISNavDisplay()
                     }
-
-                    // Dialog注册区域
-                    PrivacyPolicyDialog(
-                        showState = appSettings.agreePrivacyPolicyValue <= 1 && appSettings.knowAboutAppValue == 1, // 如果未同意则显示对话框
-                        onClickConfirm = {
-                            // 同意
+                    HomeDialogHost(
+                        appSettings = appSettings,
+                        showPrivacyPolicyRefuseTip = showPrivacyPolicyRefuseTip,
+                        onAgreePrivacyPolicy = {
                             konfettiState.value = true
                             vm.updatePrivacyPolicyAgreement(Agreed)
                         },
-                        onClickDismiss = {
-                            // 拒绝
+                        onRefusePrivacyPolicy = {
                             showPrivacyPolicyRefuseTip = true
                             vm.updatePrivacyPolicyAgreement(Refuse)
+                        },
+                        onDismissPrivacyPolicyRefuseTip = {
+                            showPrivacyPolicyRefuseTip = false
                         }
                     )
                 }
@@ -163,16 +176,78 @@ private fun MainScaffold() {
                 .padding(bottom = bottomNavHeight)
         )
     }
+}
 
-    /**
-     * 拒绝隐私政策后提示弹窗
-     */
-    PrivacyPolicyRefuseDialog(
-        showState = showPrivacyPolicyRefuseTip,
-        onClickConfirm = {
-            showPrivacyPolicyRefuseTip = false
+@Composable
+private fun HomeDialogHost(
+    appSettings: com.imcys.bilibilias.datastore.AppSettings,
+    showPrivacyPolicyRefuseTip: Boolean,
+    onAgreePrivacyPolicy: () -> Unit,
+    onRefusePrivacyPolicy: () -> Unit,
+    onDismissPrivacyPolicyRefuseTip: () -> Unit
+) {
+    val context = LocalContext.current
+    var showLegacyStoragePermissionTip by rememberSaveable { mutableStateOf(true) }
+    val legacyStoragePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            sendToastEventOnBlocking("权限未被授予")
         }
-    )
+    }
+    val shouldRequestLegacyStoragePermission =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) != PackageManager.PERMISSION_GRANTED
+
+    DialogSortHost {
+
+        dialog(
+            visible = appSettings.agreePrivacyPolicyValue <= 1 &&
+                    appSettings.knowAboutAppValue == 1
+        ) {
+            PrivacyPolicyDialog(
+                onClickConfirm = onAgreePrivacyPolicy,
+                onClickDismiss = onRefusePrivacyPolicy
+            )
+        }
+
+        dialog(
+            visible = showPrivacyPolicyRefuseTip
+        ) {
+            PrivacyPolicyRefuseDialog(
+                onClickConfirm = onDismissPrivacyPolicyRefuseTip
+            )
+        }
+
+        dialog(
+            visible = showLegacyStoragePermissionTip && shouldRequestLegacyStoragePermission
+        ) {
+            ASAlertDialog(
+                title = { Text("权限申请") },
+                text = {
+                    Text("在您的设备保存下载内容需要存储权限，是否现在授权？")
+                },
+                confirmButton = {
+                    ASTextButton(onClick = {
+                        showLegacyStoragePermissionTip = false
+                        legacyStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    }) {
+                        Text(text = "确认")
+                    }
+                },
+                dismissButton = {
+                    ASTextButton(onClick = {
+                        showLegacyStoragePermissionTip = false
+                    }) {
+                        Text(text = "暂不授权")
+                    }
+                }
+            )
+        }
+    }
 }
 
 /**
@@ -385,6 +460,15 @@ fun PrivacyPolicyDialog(
     )
 }
 
+context(_: DialogSortBuilder)
+@Composable
+fun PrivacyPolicyDialog(
+    onClickConfirm: () -> Unit,
+    onClickDismiss: () -> Unit,
+) {
+    PrivacyPolicyDialog(true, onClickConfirm, onClickDismiss)
+}
+
 
 /**
  * 隐私政策拒绝后提示弹窗
@@ -423,4 +507,15 @@ fun PrivacyPolicyRefuseDialog(
             }
         },
     )
+}
+
+/**
+ * 隐私政策拒绝后提示弹窗
+ */
+context(_: DialogSortBuilder)
+@Composable
+fun PrivacyPolicyRefuseDialog(
+    onClickConfirm: () -> Unit,
+) {
+    PrivacyPolicyRefuseDialog(true, onClickConfirm)
 }

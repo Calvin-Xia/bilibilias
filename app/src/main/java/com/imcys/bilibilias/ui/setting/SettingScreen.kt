@@ -20,10 +20,12 @@ import androidx.compose.material.icons.automirrored.outlined.AirplaneTicket
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.outlined.Android
+import androidx.compose.material.icons.outlined.Animation
 import androidx.compose.material.icons.outlined.ArrowCircleUp
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Gesture
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Notifications
@@ -55,6 +57,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -201,7 +204,7 @@ fun SettingScreen(
 
             item {
                 CategorySettingsItem(
-                    text = "主题设置"
+                    text = "个性设置"
                 )
             }
             item {
@@ -212,6 +215,27 @@ fun SettingScreen(
                     checked = appSettings.enabledDynamicColor,
                 ) { check ->
                     vm.updateEnabledDynamicColor(check)
+                }
+            }
+
+            item {
+                SwitchSettingsItem(
+                    enabled = appSettings.enabledNavAnimation,
+                    imageVector = Icons.Outlined.Gesture,
+                    text = "预测性返回手势",
+                    checked = appSettings.enabledNavOnBackInvokedCallback,
+                ) { check ->
+                    vm.updateEnabledOnBackInvokedCallback(check)
+                }
+            }
+
+            item {
+                SwitchSettingsItem(
+                    imageVector = Icons.Outlined.Animation,
+                    text = "导航动画",
+                    checked = appSettings.enabledNavAnimation,
+                ) { check ->
+                    vm.updateEnabledNavAnimation(check)
                 }
             }
 
@@ -302,14 +326,16 @@ fun SettingScreen(
             item {
                 BaseSettingsItem(
                     painter = rememberVectorPainter(Icons.Outlined.Update),
-                    text = "版本跟踪",
+                    text = "版本追踪",
                     description = {
                         when (lastGitCommitInfo.status) {
                             ApiStatus.SUCCESS -> {
-                                Text("${lastGitCommitInfo.data?.tipMsg}")
+                                Text("${lastGitCommitInfo.data?.tipMsg}", maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                             ApiStatus.ERROR -> {
-                                Text("网络异常，无法跟踪版本")
+                                Text("网络异常，无法追踪版本")
                             }
                             else -> {
                                 Text("正在检查可用版本中...")
@@ -317,7 +343,7 @@ fun SettingScreen(
                         }
                     },
                     onClick = {
-                        context.openLink("https://github.com/1250422131/bilibilias")
+                        context.openLink("https://github.com/${BuildConfig.GITHUB_ORG}/${BuildConfig.GITHUB_REPOSITORY}")
                     }
                 )
             }
@@ -329,11 +355,7 @@ fun SettingScreen(
                     text = "Github仓库",
                     description = {},
                     onClick = {
-                        val intent = Intent().apply {
-                            action = "android.intent.action.VIEW"
-                            data = "https://github.com/1250422131/bilibilias".toUri()
-                        }
-                        context.startActivity(intent)
+                        context.openLink("https://github.com/${BuildConfig.GITHUB_ORG}/${BuildConfig.GITHUB_REPOSITORY}")
                     }
                 )
             }

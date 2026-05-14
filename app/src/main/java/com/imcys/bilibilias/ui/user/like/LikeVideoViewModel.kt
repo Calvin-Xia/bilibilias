@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.imcys.bilibilias.data.repository.UserInfoRepository
+import com.imcys.bilibilias.network.ApiStatus
 import com.imcys.bilibilias.network.NetWorkResult
 import com.imcys.bilibilias.network.emptyNetWorkResult
 import com.imcys.bilibilias.network.model.user.BILIUserVideoLikeInfo
@@ -26,7 +27,8 @@ class LikeVideoViewModel(
     @Immutable
     data class UIState(
         val mid: Long = 0L,
-        val currentMediaId: Long = 0L
+        val currentMediaId: Long = 0L,
+        val isDataUpdating: Boolean = false,
     )
 
     private val _uiState = MutableStateFlow(UIState())
@@ -35,20 +37,18 @@ class LikeVideoViewModel(
         MutableStateFlow<NetWorkResult<BILIUserVideoLikeInfo?>>(emptyNetWorkResult())
     val likeVideoList = _likeVideoList.asStateFlow()
 
-    fun initMid(mid: Long, type: LikePageType) {
-        if (mid != _uiState.value.mid) {
-            _uiState.value = _uiState.value.copy(mid = mid, currentMediaId = 0L)
-            viewModelScope.launch {
-                when (type) {
-                    LikePageType.LIKE -> userInfoRepository.getLikeVideoList(mid).collect {
-                        _likeVideoList.value = it
-                    }
-
-                    LikePageType.COIN -> userInfoRepository.getCoinVideoList(mid).collect {
-                        _likeVideoList.value = it
-                    }
+    fun initMid(mid: Long, type: LikePageType, isDataUpdating: Boolean = false) {
+        _uiState.value =
+            _uiState.value.copy(mid = mid, currentMediaId = 0L, isDataUpdating = isDataUpdating)
+        viewModelScope.launch {
+            when (type) {
+                LikePageType.LIKE -> userInfoRepository.getLikeVideoList(mid)
+                LikePageType.COIN -> userInfoRepository.getCoinVideoList(mid)
+            }.collect { result ->
+                val currentEmpty = _likeVideoList.value.data?.list.isNullOrEmpty()
+                if (currentEmpty || result.status == ApiStatus.SUCCESS) {
+                    _likeVideoList.value = result
                 }
-
             }
         }
     }

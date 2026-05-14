@@ -1,6 +1,7 @@
 package com.imcys.bilibilias
 
 import android.app.Application
+import android.os.StrictMode
 import androidx.appfunctions.service.AppFunctionConfiguration
 import com.baidu.mobstat.StatService
 import com.imcys.bilibilias.agent.functions.BILIAnalysisAppFunctions
@@ -17,8 +18,11 @@ import com.imcys.bilibilias.di.appModule
 import com.imcys.bilibilias.download.FfmpegRuntimeConfig
 import com.imcys.bilibilias.download.NewDownloadManager
 import com.imcys.bilibilias.network.di.netWorkModule
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -26,6 +30,7 @@ import org.koin.core.context.startKoin
 
 class BILIBILIASApplication : Application(), AppFunctionConfiguration.Provider {
 
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val shizukuStateManager: ShizukuStateManager by inject<ShizukuStateManager>()
     private var fairMemoryReceiver: FairMemoryReceiver? = null
 
@@ -33,6 +38,9 @@ class BILIBILIASApplication : Application(), AppFunctionConfiguration.Provider {
         super.onCreate()
         // 全局异常捕获
         // AppCrashHandler.instance.init(this)
+        // 启动性能检测
+        startStrictMode()
+        // 配置初始化
         initBuildConfig()
         // 初始化百度统计
         baiduAnalyticsSafe {
@@ -52,23 +60,55 @@ class BILIBILIASApplication : Application(), AppFunctionConfiguration.Provider {
                 appModule,
             )
         }
-        fairMemoryReceiver = FairMemoryReceiver(this) {
-            getKoin().get<NewDownloadManager>()
-        }.also { receiver ->
-            receiver.initialize()
-        }
-        initFFmpeg()
+        // 监听公平运行内存调度
+        bindFairMemoryReceiver()
+        // FFmpeg初始化
+        initFFmpegAsync()
         // shizuku监听
         // shizukuStateManager.start()
     }
 
-    private fun initFFmpeg() {
-        val settingsRepository = getKoin().get<AppSettingsRepository>()
-        val settings = runBlocking { settingsRepository.appSettingsFlow.first() }
-        FfmpegRuntimeConfig.apply(
-            maxConcurrentDownloads = settings.maxConcurrentDownloads,
-            enabledConcurrentMerge = settings.enabledConcurrentMerge
+    private fun bindFairMemoryReceiver() {
+        applicationScope.launch {
+            fairMemoryReceiver = FairMemoryReceiver(this@BILIBILIASApplication) {
+                getKoin().get<NewDownloadManager>()
+            }.also { receiver ->
+                receiver.initialize()
+            }
+        }
+    }
+
+    private fun startStrictMode() {
+        if (!BuildConfig.DEBUG) return
+        StrictMode.setThreadPolicy(
+            StrictMode.ThreadPolicy.Builder()
+                .detectCustomSlowCalls() // 配合 StrictMode.noteSlowCall 使用
+                .detectDiskReads() // 检查主线程磁盘读取
+                .detectDiskWrites() // 检查主线程磁盘写入
+                .detectNetwork() // 检查主线程网络请求
+                .penaltyLog() // 在 Logcat 输出违规信息
+                .build()
         )
+        StrictMode.setVmPolicy(
+            StrictMode.VmPolicy.Builder()
+                .detectActivityLeaks() // 检查 Activity 泄漏
+                .detectLeakedSqlLiteObjects() // 检查数据库对象未关闭
+                .detectLeakedClosableObjects() // 检查 Closeable 对象未关闭
+                .detectLeakedRegistrationObjects() // 检查注册对象未释放
+                .penaltyLog() // 在 Logcat 输出违规信息
+                .build()
+        )
+    }
+
+    private fun initFFmpegAsync() {
+        applicationScope.launch {
+            val settingsRepository = getKoin().get<AppSettingsRepository>()
+            val settings = settingsRepository.appSettingsFlow.first()
+            FfmpegRuntimeConfig.apply(
+                maxConcurrentDownloads = settings.maxConcurrentDownloads,
+                enabledConcurrentMerge = settings.enabledConcurrentMerge
+            )
+        }
     }
 
     /**

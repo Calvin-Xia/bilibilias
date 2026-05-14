@@ -13,8 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun rememberWidthSizeClass(context: Context = LocalContext.current): WindowWidthSizeClass {
-    val activity = context as Activity?
-    if (activity == null) { return remember { WindowWidthSizeClass.Compact } }
+    val activity = context as? Activity? ?: return remember { WindowWidthSizeClass.Compact }
     val windowSizeClass = calculateWindowSizeClass(activity)
     return remember(windowSizeClass) { windowSizeClass.widthSizeClass }
 }
@@ -22,8 +21,7 @@ fun rememberWidthSizeClass(context: Context = LocalContext.current): WindowWidth
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun rememberHeightSizeClass(context: Context = LocalContext.current): WindowHeightSizeClass {
-    val activity = context as Activity?
-    if (activity == null) { return remember { WindowHeightSizeClass.Compact } }
+    val activity = context as? Activity? ?: return remember { WindowHeightSizeClass.Compact }
     val windowSizeClass = calculateWindowSizeClass(activity)
     return remember(windowSizeClass) { windowSizeClass.heightSizeClass }
 }

@@ -28,6 +28,13 @@ sourceSets {
         }
     }
 }
+tasks.withType<ProcessResources>().configureEach {
+    exclude("**/*.proto")
+}
+
+tasks.withType<Jar>().configureEach {
+    exclude("**/*.proto")
+}
 
 dependencies {
     api(libs.protobuf.kotlin.lite)

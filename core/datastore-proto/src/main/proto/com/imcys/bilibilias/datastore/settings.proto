@@ -105,4 +105,8 @@ message AppSettings {
 
   // 开启后按并发下载数设置 FFmpeg 并发合并，否则固定为 1
   bool enabled_concurrent_merge = 23;
+  // 启用预测性返回手势
+  optional bool enabled_nav_on_back_invoked_callback = 24;
+  // 启用导航动画
+  optional bool enabled_nav_animation = 25;
 }

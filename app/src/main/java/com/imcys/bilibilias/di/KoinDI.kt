@@ -4,10 +4,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.dataStoreFile
 import com.imcys.bilibilias.agent.functions.BILIAnalysisAppFunctions
-import com.imcys.bilibilias.BuildConfig
 import com.imcys.bilibilias.common.shizuku.ShizukuStateManager
-import com.imcys.bilibilias.common.utils.FirebaseExt
-import com.imcys.bilibilias.firebase.FirebaseNetworkPerformanceTracer
+import com.imcys.bilibilias.common.utils.firebase.FirebaseNetworkPerformanceTracer
 import com.imcys.bilibilias.datastore.AppSettings
 import com.imcys.bilibilias.datastore.AppSettingsSerializer
 import com.imcys.bilibilias.download.DownloadExecutor

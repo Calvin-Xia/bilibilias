@@ -1,6 +1,7 @@
 package com.imcys.bilibilias.network.model.user
 
 
+import com.imcys.bilibilias.common.data.value.BiliImageURL
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -39,7 +40,7 @@ data class LikeAndCoinItemData(
     @SerialName("owner")
     val owner: Owner,
     @SerialName("pic")
-    val pic: String,
+    val pic: BiliImageURL,
     @SerialName("pubdate")
     val pubdate: Long,
     @SerialName("short_link_v2")

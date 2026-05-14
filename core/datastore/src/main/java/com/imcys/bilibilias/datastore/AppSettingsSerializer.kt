@@ -29,6 +29,8 @@ object AppSettingsSerializer : Serializer<AppSettings> {
         .setUseAudioContainer("m4a")
         .setMaxConcurrentDownloads(1)
         .setEnabledConcurrentMerge(false)
+        .setEnabledNavOnBackInvokedCallback(true)
+        .setEnabledNavAnimation(true)
         .build()
 
 
@@ -75,6 +77,14 @@ object AppSettingsSerializer : Serializer<AppSettings> {
             }
             if (parsed.maxConcurrentDownloads <= 1 && parsed.enabledConcurrentMerge) {
                 builder.setEnabledConcurrentMerge(false)
+                modified = true
+            }
+            if (!parsed.hasEnabledNavOnBackInvokedCallback()){
+                builder.setEnabledClipboardAutoHandling(defaultValue.enabledNavOnBackInvokedCallback)
+                modified = true
+            }
+            if (!parsed.hasEnabledNavAnimation()){
+                builder.setEnabledClipboardAutoHandling(defaultValue.enabledNavAnimation)
                 modified = true
             }
             return if (modified) builder.build() else parsed

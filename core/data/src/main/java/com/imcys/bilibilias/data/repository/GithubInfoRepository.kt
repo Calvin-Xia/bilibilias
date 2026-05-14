@@ -9,8 +9,11 @@ import kotlinx.coroutines.flow.map
 class GithubInfoRepository(
     private val githubAPIService: GithubAPIService
 ) {
-    suspend fun getLastCommitInfo() =
-        githubAPIService.getCommits("1250422131", "bilibilias").map { result ->
+    suspend fun getLastCommitInfo(
+        org: String,
+        repository: String,
+    ) =
+        githubAPIService.getCommits(org, repository).map { result ->
             result.mapData { commits, _ ->
                 if (commits.isNullOrEmpty()) {
                     return@mapData GithubCodeVersionUpdateInfo(

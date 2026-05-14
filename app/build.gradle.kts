@@ -14,7 +14,10 @@ plugins {
 }
 val enabledPlayAppMode: String by project
 val enabledAnalytics: String by project
-val baiduStatId: String = project.findProperty("as.baidu.stat.id")?.toString() ?: ""
+fun Project.optionalStringProperty(name: String): String = findProperty(name)?.toString() ?: ""
+val baiduStatId: String = project.optionalStringProperty("as.baidu.stat.id")
+val githubOrg: String = project.optionalStringProperty("as.github.org")
+val githubRepository: String = project.optionalStringProperty("as.github.repository")
 val gitCommitHash: String = providers.exec {
     commandLine("git", "rev-parse", "--short", "HEAD")
 }.standardOutput.asText.get().trim()
@@ -33,8 +36,10 @@ android {
         manifestPlaceholders["BAIDU_STAT_ID"] = baiduStatId
         buildConfigField("String", "BAIDU_STAT_ID", """"$baiduStatId"""".trimIndent())
         buildConfigField("String", "GIT_COMMIT_HASH", """"$gitCommitHash"""".trimIndent())
+        buildConfigField("String","GITHUB_ORG",""""$githubOrg"""".trimIndent())
+        buildConfigField("String","GITHUB_REPOSITORY",""""$githubRepository"""".trimIndent())
         ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a","x86_64")
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
         }
     }
     signingConfigs {
@@ -197,6 +202,7 @@ fun DependencyHandlerScope.baiduStatDependencies() {
         }
     }
 }
+
 // Google Play 依赖配置
 fun DependencyHandlerScope.googlePlayDependencies(enabled: Boolean) {
     val googlePlayLibs = listOf(

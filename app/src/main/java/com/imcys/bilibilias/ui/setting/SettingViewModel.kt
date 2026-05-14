@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Firebase
 import com.google.firebase.app
+import com.imcys.bilibilias.BuildConfig
 import com.imcys.bilibilias.data.model.github.GithubCodeVersionUpdateInfo
 import com.imcys.bilibilias.data.repository.AppSettingsRepository
 import com.imcys.bilibilias.data.repository.GithubInfoRepository
@@ -60,7 +61,10 @@ class SettingViewModel(
 
     private fun loadGitInfo() {
         viewModelScope.launch {
-            githubInfoRepository.getLastCommitInfo().collect {
+            githubInfoRepository.getLastCommitInfo(
+                BuildConfig.GITHUB_ORG,
+                BuildConfig.GITHUB_REPOSITORY
+            ).collect {
                 lastGitCommitInfo.value = it
             }
         }
@@ -80,6 +84,17 @@ class SettingViewModel(
         }
     }
 
+    fun updateEnabledOnBackInvokedCallback(enabled: Boolean){
+        viewModelScope.launch {
+            appSettingsRepository.updateEnabledOnBackInvokedCallback(enabled)
+        }
+    }
+
+    fun updateEnabledNavAnimation(enabled: Boolean){
+        viewModelScope.launch {
+            appSettingsRepository.updateEnabledNavAnimation(enabled)
+        }
+    }
     fun updateClipboardAutoHandling(enabled: Boolean) {
         viewModelScope.launch {
             appSettingsRepository.updateClipboardAutoHandling(enabled)

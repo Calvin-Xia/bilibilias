@@ -18,10 +18,7 @@ class HistoryPlayPagingSource(
 
     override fun getRefreshKey(state: PagingState<Cursor, BILIUserHistoryPlayModel>): Cursor? {
         // 直接返回最近的 prevKey 或 nextKey，或返回 null
-        return state.anchorPosition?.let { anchorPosition ->
-            val anchorPage = state.closestPageToPosition(anchorPosition)
-            anchorPage?.prevKey ?: anchorPage?.nextKey
-        }
+        return null
     }
 
     override suspend fun load(params: LoadParams<Cursor>): LoadResult<Cursor, BILIUserHistoryPlayModel> {

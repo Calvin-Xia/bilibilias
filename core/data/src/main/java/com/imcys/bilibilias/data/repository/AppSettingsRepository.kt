@@ -25,6 +25,11 @@ class AppSettingsRepository(
         return currentSettings.agreePrivacyPolicy == AppSettings.AgreePrivacyPolicyState.Agreed
     }
 
+    // 预测返回手势启用
+    suspend fun hasEnabledOnBackInvokedCallback(): Boolean {
+        val currentSettings = dataStore.data.first()
+        return currentSettings.enabledNavOnBackInvokedCallback
+    }
 
     // 添加更新隐私政策同意状态的方法
     suspend fun updatePrivacyPolicyAgreement(agreed: AppSettings.AgreePrivacyPolicyState) {
@@ -57,6 +62,27 @@ class AppSettingsRepository(
         dataStore.updateData { currentSettings ->
             currentSettings.copy {
                 enabledDynamicColor = enabled
+            }
+        }
+    }
+
+
+    suspend fun updateEnabledOnBackInvokedCallback(enabled: Boolean) {
+        dataStore.updateData { currentSettings ->
+            currentSettings.copy {
+                if (!enabledNavAnimation) return@copy
+                enabledNavOnBackInvokedCallback = enabled
+            }
+        }
+    }
+
+    suspend fun updateEnabledNavAnimation(enabled: Boolean) {
+        dataStore.updateData { currentSettings ->
+            currentSettings.copy {
+                if (!enabled){
+                    enabledNavOnBackInvokedCallback = false
+                }
+                enabledNavAnimation = enabled
             }
         }
     }

@@ -1,4 +1,4 @@
-package com.imcys.bilibilias.firebase
+package com.imcys.bilibilias.common.utils.firebase
 
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace

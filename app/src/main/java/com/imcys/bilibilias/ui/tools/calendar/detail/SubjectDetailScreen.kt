@@ -76,7 +76,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -98,7 +97,7 @@ import com.imcys.bilibilias.common.uimodel.DonghuaPlayPlatform
 import com.imcys.bilibilias.common.uimodel.DonghuaPlayTV
 import com.imcys.bilibilias.common.uimodel.playProgramList
 import com.imcys.bilibilias.common.uimodel.playTVList
-import com.imcys.bilibilias.common.utils.FirebaseExt.logOpenSubjectDetail
+import com.imcys.bilibilias.common.utils.firebase.FirebaseExt.logOpenSubjectDetail
 import com.imcys.bilibilias.network.ApiStatus
 import com.imcys.bilibilias.network.NetWorkResult
 import com.imcys.bilibilias.network.model.bgm.BgmEpisodeList

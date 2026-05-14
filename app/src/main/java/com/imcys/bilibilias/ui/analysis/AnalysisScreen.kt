@@ -159,6 +159,11 @@ fun AnalysisScreen(
     val appSettings by vm.appSettings.collectAsStateWithLifecycle(initialValue = AppSettingsSerializer.appSettingsDefault)
     val context = LocalContext.current
     val windowsWidthSize = rememberWidthSizeClass()
+    val requestSavePic = rememberSavePictureRequester(
+        onSavePicture = { imageUrl ->
+            vm.downloadImageToAlbum(context, imageUrl, "BILIBILIAS")
+        }
+    )
 
     LaunchedEffect(analysisRoute.asInputText) {
         // 解析分享内容
@@ -227,7 +232,7 @@ fun AnalysisScreen(
                                     uiState.isBILILogin,
                                     uiState.analysisBaseInfo,
                                     boostVideoInfo = boostVideoInfo,
-                                    savePic = { vm.downloadImageToAlbum(context, it, "BILIBILIAS") },
+                                    savePic = requestSavePic,
                                     animatedContentScope = this@AnimatedContent,
                                     sharedTransitionScope = this@SharedTransitionLayout,
                                     goToUser = goToUser,
@@ -251,7 +256,7 @@ fun AnalysisScreen(
                                     uiState.isBILILogin,
                                     uiState.analysisBaseInfo,
                                     boostVideoInfo = boostVideoInfo,
-                                    savePic = { vm.downloadImageToAlbum(context, it, "BILIBILIAS") },
+                                    savePic = requestSavePic,
                                     animatedContentScope = this@AnimatedContent,
                                     sharedTransitionScope = this@SharedTransitionLayout,
                                     goToUser = goToUser,
@@ -1268,6 +1273,52 @@ fun AuthorInfoContent(
     }
 }
 
+@Composable
+private fun rememberSavePictureRequester(
+    onSavePicture: suspend (String) -> Unit
+): suspend (String?) -> Unit {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val savePermissions = remember {
+        arrayOf(
+            permission.READ_EXTERNAL_STORAGE,
+            permission.WRITE_EXTERNAL_STORAGE
+        )
+    }
+    var pendingSavePicUrl by rememberSaveable { mutableStateOf<String?>(null) }
+    val savePicPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        val allGranted = result.values.all { it }
+        val url = pendingSavePicUrl
+        pendingSavePicUrl = null
+        if (allGranted && !url.isNullOrEmpty()) {
+            coroutineScope.launch {
+                onSavePicture(url)
+            }
+        } else if (!allGranted) {
+            sendToastEventOnBlocking("权限未被授予")
+        }
+    }
+
+    return request@{ imageUrl ->
+        if (imageUrl.isNullOrEmpty()) return@request
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            onSavePicture(imageUrl)
+            return@request
+        }
+        val hasPermissions = savePermissions.all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+        }
+        if (hasPermissions) {
+            onSavePicture(imageUrl)
+        } else {
+            pendingSavePicUrl = imageUrl
+            savePicPermissionLauncher.launch(savePermissions)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalysisScaffold(
@@ -1293,7 +1344,7 @@ fun AnalysisScaffold(
     var hasSavePermissions by remember {
         // 在开始时检查权限状态
         mutableStateOf(
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.P || permissionsToRequest.all {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q || permissionsToRequest.all {
                 ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
             }
         )
@@ -1412,7 +1463,6 @@ private fun WritePermissionRequestTipDialog(
         message = "需要存储权限以保存下载内容，是否继续？",
         onConfirm = {
             launcher.launch(permissionsToRequest)
-            onRequest()
             onDismiss()
         },
         onDismiss = onDismiss

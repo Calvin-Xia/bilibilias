@@ -1,6 +1,8 @@
 package com.imcys.bilibilias.navigation
 
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -9,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,10 +21,12 @@ import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -39,9 +44,10 @@ import com.imcys.bilibilias.common.event.playVoucherErrorChannel
 import com.imcys.bilibilias.common.event.requestFrequentHandleChannel
 import com.imcys.bilibilias.common.event.restoreBackStackEventFlow
 import com.imcys.bilibilias.common.event.saveBackStackChannel
-import com.imcys.bilibilias.common.utils.FirebaseExt.logOpenAppPage
-import com.imcys.bilibilias.common.utils.FirebaseExt.logRestoreBackStack
+import com.imcys.bilibilias.common.utils.firebase.FirebaseExt.logOpenAppPage
+import com.imcys.bilibilias.common.utils.firebase.FirebaseExt.logRestoreBackStack
 import com.imcys.bilibilias.data.repository.AppSettingsRepository
+import com.imcys.bilibilias.datastore.AppSettingsSerializer
 import com.imcys.bilibilias.ui.analysis.AnalysisScreen
 import com.imcys.bilibilias.ui.analysis.navigation.AnalysisRoute
 import com.imcys.bilibilias.ui.analysis.videocodeing.VideoCodingInfoRoute
@@ -125,6 +131,12 @@ fun BILIBILAISNavDisplay() {
         remember { NavBackStackSerializer(elementSerializer = NavKeySerializer()) }
     val json = koinInject<Json>()
     val settingsRepository = koinInject<AppSettingsRepository>()
+    val settings by settingsRepository.appSettingsFlow.collectAsStateWithLifecycle(
+        AppSettingsSerializer.appSettingsDefault
+    )
+    val navAnimationEnabled = settings.enabledNavAnimation
+    val predictiveBackAnimationEnabled =
+        navAnimationEnabled && settings.enabledNavOnBackInvokedCallback
     val onBack = { backStack.removeLastOrNullSafe() }
     // 监听解析事件
     LaunchedEffect(Unit) {
@@ -180,24 +192,75 @@ fun BILIBILAISNavDisplay() {
             }
     }
 
-
-    fun createPopTransitionSpec() = ContentTransform(
-        // 返回导航：上一个页面进入 - 从放大状态恢复
-        scaleIn(
-            initialScale = 1.1F,
-            animationSpec = tween(
-                durationMillis = 400,
-                easing = FastOutSlowInEasing
-            )
-        ),
-        // 返回导航：当前页面退出 - 淡出+放大
-        fadeOut(
-            animationSpec = tween(
-                durationMillis = 400,
-                easing = FastOutSlowInEasing
+    fun createForwardTransitionSpec(enabled: Boolean) = if (!enabled) {
+        EnterTransition.None togetherWith ExitTransition.None
+    } else {
+        ContentTransform(
+            targetContentEnter = fadeIn(
+                animationSpec = tween(
+                    durationMillis = 400,
+                    easing = FastOutSlowInEasing
+                )
+            ),
+            initialContentExit = scaleOut(
+                targetScale = 1.1F,
+                animationSpec = tween(
+                    durationMillis = 400,
+                    easing = FastOutSlowInEasing
+                )
             )
         )
-    )
+    }
+
+    fun createPopTransitionSpec(enabled: Boolean) = if (!enabled) {
+        EnterTransition.None togetherWith ExitTransition.None
+    } else {
+        ContentTransform(
+            targetContentEnter = scaleIn(
+                initialScale = 1.1F,
+                animationSpec = tween(
+                    durationMillis = 400,
+                    easing = FastOutSlowInEasing
+                )
+            ),
+            initialContentExit = fadeOut(
+                animationSpec = tween(
+                    durationMillis = 400,
+                    easing = FastOutSlowInEasing
+                )
+            )
+        )
+    }
+
+    fun createPredictivePopTransitionSpec(enabled: Boolean) = if (!enabled) {
+        EnterTransition.None togetherWith ExitTransition.None
+    } else {
+        ContentTransform(
+            targetContentEnter = scaleIn(
+                initialScale = 1.06F,
+                animationSpec = tween(
+                    durationMillis = 320,
+                    easing = FastOutSlowInEasing
+                )
+            ),
+            initialContentExit = fadeOut(
+                animationSpec = tween(
+                    durationMillis = 320,
+                    easing = FastOutSlowInEasing
+                )
+            )
+        )
+    }
+
+    val forwardTransitionSpec = remember(navAnimationEnabled) {
+        createForwardTransitionSpec(navAnimationEnabled)
+    }
+    val popTransitionSpec = remember(navAnimationEnabled) {
+        createPopTransitionSpec(navAnimationEnabled)
+    }
+    val predictivePopTransitionSpec = remember(predictiveBackAnimationEnabled) {
+        createPredictivePopTransitionSpec(predictiveBackAnimationEnabled)
+    }
 
     SharedTransitionLayout {
         NavDisplay(
@@ -212,29 +275,13 @@ fun BILIBILAISNavDisplay() {
                 rememberViewModelStoreNavEntryDecorator()
             ),
             transitionSpec = {
-                ContentTransform(
-                    // 正向导航：新页面进入 - 只是淡入
-                    fadeIn(
-                        animationSpec = tween(
-                            durationMillis = 400,
-                            easing = FastOutSlowInEasing
-                        )
-                    ),
-                    // 正向导航：原页面退出 - 放大并保持可见
-                    scaleOut(
-                        targetScale = 1.1F,
-                        animationSpec = tween(
-                            durationMillis = 400,
-                            easing = FastOutSlowInEasing
-                        )
-                    )
-                )
+                forwardTransitionSpec
             },
             popTransitionSpec = {
-                createPopTransitionSpec()
+                popTransitionSpec
             },
             predictivePopTransitionSpec = {
-                createPopTransitionSpec()
+                predictivePopTransitionSpec
             },
             entryProvider = entryProvider {
                 entry<HomeRoute> {
@@ -534,7 +581,9 @@ fun BILIBILAISNavDisplay() {
                         onToBack = onBack
                     )
                 }
-                entry<ParsePlatformRoute> {
+                entry<ParsePlatformRoute> (
+                    metadata = ListDetailSceneStrategy.detailPane()
+                ){
                     ParsePlatformScreen(
                         parsePlatformRoute = it,
                         onToBack = onBack
