@@ -19,16 +19,18 @@ class RiskManagementRepository(
     private val asCookiesStorage: AsCookiesStorage
 ) {
     private val spiMutex = Mutex()
-    private var cachedSpiB3: String? = null
-    private var cachedSpiB4: String? = null
 
     /**
      * 更新签名
      *
-     * BUVID 是设备级 Cookie，进程内获取一次即可，因此缓存返回值；Mutex 用于避免首页并发加载时重复请求。
+     * BUVID 是设备级 Cookie，已存在时无需重复请求 SPI；Mutex 用于避免首页并发加载时重复请求。
+     *
+     * 判定以 Cookie 存储的实际内容为准，不在实例内缓存返回值：登出会清空 Cookie
+     * （SettingViewModel.logout），若用实例字段做缓存，登出后 BUVID 无法恢复，
+     * 匿名请求会因缺少 buvid 而更易触发风控。
      */
     suspend fun updateWebSpiCookie() = spiMutex.withLock {
-        if (cachedSpiB3 != null && cachedSpiB4 != null) return
+        if (!isSpiCookieMissing()) return
 
         webApiService.getWebSpiInfo().collect { result ->
             when (result) {
@@ -50,14 +52,15 @@ class RiskManagementRepository(
                             path = "/"
                         )
                     )
-
-                    cachedSpiB3 = spi.b3
-                    cachedSpiB4 = spi.b4
                 }
 
                 else -> {}
             }
         }
     }
+
+    private suspend fun isSpiCookieMissing(): Boolean =
+        asCookiesStorage.getCookieValue(BUVID3) == null ||
+            asCookiesStorage.getCookieValue(BUVID4) == null
 
 }
