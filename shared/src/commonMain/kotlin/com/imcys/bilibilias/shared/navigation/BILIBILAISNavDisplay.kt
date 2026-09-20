@@ -185,11 +185,17 @@ fun BILIBILAISNavDisplay() {
         restoreBackStackEventFlow.collect {
             val setting = settingsRepository.appSettingsFlow.first()
             if (setting.navBackStack.isNotEmpty()) {
-                val stack = navBackStackSerializer.loadBackStack(json, setting.navBackStack)
-                backStack.clear()
-                backStack.addAll(stack)
+                // 存档可能来自旧版本（route 改名、序列化名变化）或被写入损坏，反序列化会抛异常。
+                // 这里必须兜住并清掉存档：否则每轮恢复都在同一处抛出，存档永远清不掉，功能永久失效。
+                val stack = runCatching {
+                    navBackStackSerializer.loadBackStack(json, setting.navBackStack)
+                }.getOrNull()
                 settingsRepository.updateNavBackStack("")
-                FirebaseExt.logRestoreBackStack(stack.lastOrNull())
+                if (stack != null) {
+                    backStack.clear()
+                    backStack.addAll(stack)
+                    FirebaseExt.logRestoreBackStack(stack.lastOrNull())
+                }
             }
         }
     }

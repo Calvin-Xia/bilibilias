@@ -42,8 +42,14 @@ import com.imcys.bilibilias.ui.component.ASTopAppBar
 import com.imcys.bilibilias.ui.component.AsBackIconButton
 import com.imcys.bilibilias.ui.component.BILIBILIASTopAppBarStyle
 import com.imcys.bilibilias.ui.component.maybeNestedScroll
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/**
+ * 序列化名保留旧类名：导航栈以多态序列化写入 DataStore，升级用户的存档里
+ * 可能还是旧名字，改名后不改这里会让恢复时反序列化失败。
+ */
+@SerialName("com.imcys.bilibilias.shared.feature.setting.about.AboutRouter")
 @Serializable
 data object AboutRoute : NavKey
 

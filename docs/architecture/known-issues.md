@@ -87,7 +87,7 @@ FFmpegKit 的 `FFmpegKitConfig.clearSessions()` 会清除会话历史（**包含
 
 ### C3. 测试覆盖仍然偏薄
 
-全仓库 59 个测试用例覆盖约 44,000 行代码。纯逻辑基线覆盖了签名、WBI、正则、数字格式化、命名规则，以及 4 版本起的凭据加解密与转换器回退（`core:database` 新增 26 例），但以下高风险区域**仍无任何测试**：
+全仓库 64 个测试用例覆盖约 44,000 行代码。纯逻辑基线覆盖了签名、WBI、正则、数字格式化、命名规则，以及 4 版本起的凭据加解密与转换器回退（`core:database` 新增 28 例），但以下高风险区域**仍无任何测试**：
 
 - 下载链路（`core/data/`、`app/download/`）——纯逻辑部分需要先做依赖抽象才能测（`shared/` 已有 `NamingConventionHandlerTest`）
 - 数据库迁移（`Migration.kt`）——`core:database` 已具备 host test 基建，但仍未覆盖迁移本身
@@ -101,6 +101,10 @@ FFmpegKit 的 `FFmpegKitConfig.clearSessions()` 会清除会话历史（**包含
 - `core/network` 中约 851 条（共 1555 条）`@SerialName` 与属性名完全一致，属冗余映射
 
 **已修复**：命名笔误 `CookeLoginRoute`（Cookie）、`DongmhuaDownloadScreen`（动画）、`AboutRouter`（应为 Route）已在本轮更正为 `CookieLoginRoute`、`DonghuaDownloadScreen`、`AboutRoute`，同族的 `CookeLoginScreen`/`CookeLoginContent`/`CookeLoginScaffold` 一并修正。
+
+**改 Route 类名时必须保留序列化名**：导航栈以多态序列化写入 `AppSettings.navBackStack`（保存/恢复逻辑在 `shared/navigation/BILIBILAISNavDisplay.kt`），`CookieLoginRoute` 与 `AboutRoute` 上因此加了 `@SerialName` 指向旧类名。新增/重命名 Route 时若改了序列化名，升级用户恢复旧导航栈会反序列化失败；`NavRouteSerializationNameTest` 会卡住这种退化。
+
+恢复逻辑同时改为「失败即清除存档」：原实现反序列化抛异常时会跳过 `updateNavBackStack("")`，同一份坏存档每轮恢复都失败，导航栈恢复功能会永久失效。
 
 ### C5. 网络层细节
 

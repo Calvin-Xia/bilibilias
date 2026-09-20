@@ -44,9 +44,11 @@ kotlin {
 | `LoginPlatformConverterTest` | `core:database` | 4 | 非法值与 null 回退默认平台 |
 | `CookieEncodingConverterTest` | `core:database` | 3 | 非法值与 null 回退默认编码 |
 | `DownloadConvertersFallbackTest` | `core:database` | 8 | 7 个下载枚举 + 容器的非法值/未知扩展名回退 |
+| `DatabaseModuleBindingTest` | `core:database` | 2 | DAO 可按接口类型解析、解析结果确实是加密装饰器 |
 | `FairMemoryReceiverTest` | `app` | 3 | 厂商内存回收广播动作解析 |
+| `NavRouteSerializationNameTest` | `shared` | 3 | Route 的序列化名保持旧类名（旧导航栈存档可恢复） |
 
-合计 59 个用例。下载链路、Room migration、`core/ui`、网络 adapter 的错误分支目前**没有测试**——补测试前请参阅 [已知问题与技术债](../architecture/known-issues.md) 的 C3 节。
+合计 64 个用例。下载链路、Room migration、`core/ui`、网络 adapter 的错误分支目前**没有测试**——补测试前请参阅 [已知问题与技术债](../architecture/known-issues.md) 的 C3 节。
 
 ## 推荐验证命令
 
