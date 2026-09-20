@@ -32,3 +32,17 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         )
     }
 }
+
+/**
+ * 清空存量明文凭据。
+ *
+ * 4 版本起 token 与 Cookie 改为加密存储，历史数据是明文，无法在不持有旧格式密钥的前提下
+ * 原地重加密，因此直接清除：升级用户需要重新登录。清除后启动时的登录态对账会把
+ * DataStore 中残留的登录标记重置，避免出现"显示已登录但请求无凭据"。
+ */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("UPDATE bili_users SET access_token = NULL, refresh_token = NULL")
+        connection.execSQL("DELETE FROM bili_user_cookies")
+    }
+}

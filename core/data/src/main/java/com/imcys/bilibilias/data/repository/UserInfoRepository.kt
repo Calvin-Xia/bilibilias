@@ -4,6 +4,7 @@ import com.imcys.bilibilias.common.data.value.BiliImageURL
 import com.imcys.bilibilias.data.model.BILISpaceArchiveModel
 import com.imcys.bilibilias.data.model.BILIUserStatModel
 import com.imcys.bilibilias.data.model.user.BILIUserHistoryPlayModel
+import com.imcys.bilibilias.database.dao.BILIUserCookiesDao
 import com.imcys.bilibilias.database.dao.BILIUsersDao
 import com.imcys.bilibilias.database.entity.BILIUsersEntity
 import com.imcys.bilibilias.database.entity.LoginPlatform
@@ -29,11 +30,28 @@ class UserInfoRepository(
     private val webApiService: BILIBILIWebAPIService,
     private val tvAPIService: BILIBILITVAPIService,
     private val biliUsersDao: BILIUsersDao,
+    private val biliUserCookiesDao: BILIUserCookiesDao,
     private val usersDataSource: UsersDataSource
 ) {
 
 
     suspend fun isLogin() = usersDataSource.getUserId() != 0L
+
+    /**
+     * 当前登录会话在数据库中是否仍有可用凭据。
+     *
+     * 凭据加密迁移与解密失败都会让凭据缺失（见 [com.imcys.bilibilias.database.dao.EncryptedBILIUsersDao]），
+     * 此时界面仍可能按 DataStore 的登录标记显示为已登录，但请求会以未登录身份发出。启动时用本方法
+     * 对账，发现凭据不可用就重置登录标记，引导用户重新登录。
+     */
+    suspend fun isCurrentSessionValid(): Boolean {
+        val userId = usersDataSource.getUserId()
+        if (userId == 0L) return false
+        val user = biliUsersDao.getBILIUserByUid(userId) ?: return false
+        // refresh_token 目前没有刷新流程，只有 access_token 或 Cookie 能让请求真正带上身份
+        if (user.accessToken != null) return true
+        return biliUserCookiesDao.getBILIUserCookiesByUid(userId).isNotEmpty()
+    }
 
     // 获取当前用户信息
     suspend fun getCurrentUser(): BILIUsersEntity? {

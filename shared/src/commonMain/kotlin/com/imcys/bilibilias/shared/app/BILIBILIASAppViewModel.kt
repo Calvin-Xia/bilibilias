@@ -44,6 +44,24 @@ class BILIBILIASAppViewModel(
                 }
             }
         }
+        reconcileLoginState()
+    }
+
+    /**
+     * 对账 DataStore 登录标记与数据库凭据。
+     *
+     * 凭据加密迁移会清空存量 token 与 Cookie，密钥失效也会让解密失败；两种情况数据库都没有可用凭据，
+     * 而 DataStore 仍记录着用户 id。此时重置登录标记，避免界面显示已登录而请求全部以未登录身份发出。
+     */
+    private fun reconcileLoginState() {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                if (!usersDataSource.isLogin()) return@runCatching
+                if (userInfoRepository.isCurrentSessionValid()) return@runCatching
+                usersDataSource.setUserId(0)
+                asCookiesStorage.clearCookies()
+            }
+        }
     }
 
     fun updatePrivacyPolicyAgreement(agreed: AppSettings.AgreePrivacyPolicyState) {
