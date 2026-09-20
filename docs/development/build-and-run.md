@@ -66,9 +66,10 @@ Build type：
 
 ABI：
 
-- 默认支持 `armeabi-v7a`、`arm64-v8a`、`x86_64`。
-- debug 构建禁用 ABI split。
-- release 构建启用 ABI split，并生成 universal APK。
+- 支持 `arm64-v8a` 与 `x86_64`，两者同时由 `ndk.abiFilters`（debug）和 `splits`（release）约束。
+- debug 构建禁用 ABI split，产出单个含上述两个 ABI 的 APK。
+- release 构建启用 ABI split，产出每个 ABI 的拆分 APK，并额外生成 universal APK。
+- 不再包含 `armeabi-v7a`：纯 32 位 ARM 设备（部分老机型与电视盒子）将无法安装。恢复支持需要同时改回 `app/build.gradle.kts` 的 `abiFilters` 与 `splits` 两处。
 
 当前 `core/ffmpeg` 目录没有参与构建；实际打包使用的是 `app` 中直接声明的 `ffmpeg-kit` 依赖。
 
