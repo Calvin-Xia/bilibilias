@@ -101,7 +101,7 @@ class DownloadViewModel(
         val savePath = segment.savePath
         // 检查文件是否存在
         if (!savePath.startsWith("content://")) {
-            if (FileSystem.fileExists(savePath)) {
+            if (!FileSystem.fileExists(savePath)) {
                 sendToast("文件不存在，可能已被删除")
                 return
             }

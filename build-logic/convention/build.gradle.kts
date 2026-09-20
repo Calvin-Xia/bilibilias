@@ -70,12 +70,6 @@ gradlePlugin {
             version = "unspecified"
         }
 
-        register("jvmLibrary"){
-            id = libs.plugins.bilibilias.jvm.library.get().pluginId
-            implementationClass = "JvmLibraryConventionPlugin"
-            version = "unspecified"
-        }
-
         register("multiplatformLibrary") {
             id = libs.plugins.bilibilias.multiplatform.library.get().pluginId
             implementationClass = "MultiplatformLibraryConventionPlugin"

@@ -37,8 +37,10 @@ class NamingConventionHandler(
 
     /**
      * 应用命名规则
+     *
+     * 纯函数：不依赖任何设置读取，便于单元测试覆盖占位符替换与文件名清洗逻辑。
      */
-    private fun buildFileNameWithConvention(
+    internal fun buildFileNameWithConvention(
         namingRule: String,
         conventionInfo: NamingConventionInfo?,
         fileSuffix: String

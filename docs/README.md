@@ -16,6 +16,7 @@
   - [数据库存储设计](./architecture/database-storage-design.md)
   - [下载链路设计](./architecture/download-design.md)
   - [媒体合并与 FFmpeg 设计](./architecture/media-merge-design.md)
+  - [已知问题与技术债](./architecture/known-issues.md)
 - `development/`：本地开发、构建、运行、配置开关和发布相关说明。
   - [构建与运行](./development/build-and-run.md)
   - [构建矩阵与开关组合](./development/build-matrix.md)

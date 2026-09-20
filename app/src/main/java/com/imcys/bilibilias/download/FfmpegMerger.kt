@@ -3,7 +3,6 @@ package com.imcys.bilibilias.download
 import android.app.Application
 import android.util.Log
 import com.arthenica.ffmpegkit.FFmpegKit
-import com.arthenica.ffmpegkit.FFmpegKitConfig
 import com.arthenica.ffmpegkit.FFprobeKit
 import com.arthenica.ffmpegkit.ReturnCode
 import com.imcys.bilibilias.BuildConfig
@@ -104,62 +103,58 @@ class FfmpegMerger(
         duration: Long,
         onProgress: (Float) -> Unit
     ) {
-        try {
-            suspendCancellableCoroutine { continuation ->
-                var lastProgressEmit = 0L
+        suspendCancellableCoroutine { continuation ->
+            var lastProgressEmit = 0L
 
-                val session = FFmpegKit.executeAsync(
-                    command,
-                    { session ->
-                        when {
-                            ReturnCode.isSuccess(session.returnCode) -> {
-                                if (!outputFile.exists() || outputFile.length() == 0L) {
-                                    continuation.resumeWithException(Exception("输出文件生成失败"))
-                                } else {
-                                    Log.d("FFmpeg", "合并完成: ${outputFile.absolutePath}")
-                                    continuation.resume(Unit)
-                                }
-                            }
-
-                            ReturnCode.isCancel(session.returnCode) -> {
-                                outputFile.deleteIfExists()
-                                Log.w("FFmpeg", "任务被取消")
-                                continuation.resumeWithException(CancellationException("任务被取消"))
-                            }
-
-                            else -> {
-                                outputFile.deleteIfExists()
-                                Log.e("FFmpeg", "执行失败: ${session.failStackTrace}")
-                                continuation.resumeWithException(
-                                    Exception("FFmpeg执行失败: ${session.failStackTrace}")
-                                )
+            val session = FFmpegKit.executeAsync(
+                command,
+                { session ->
+                    when {
+                        ReturnCode.isSuccess(session.returnCode) -> {
+                            if (!outputFile.exists() || outputFile.length() == 0L) {
+                                continuation.resumeWithException(Exception("输出文件生成失败"))
+                            } else {
+                                Log.d("FFmpeg", "合并完成: ${outputFile.absolutePath}")
+                                continuation.resume(Unit)
                             }
                         }
-                    },
-                    { log ->
-                        if (BuildConfig.DEBUG){
-                            Log.d("FFmpeg", "$log")
+
+                        ReturnCode.isCancel(session.returnCode) -> {
+                            outputFile.deleteIfExists()
+                            Log.w("FFmpeg", "任务被取消")
+                            continuation.resumeWithException(CancellationException("任务被取消"))
                         }
-                    },
-                    { statistics ->
-                        if (statistics.time > 0 && duration > 0) {
-                            val now = System.currentTimeMillis()
-                            if (now - lastProgressEmit > 100) {
-                                val progress = (statistics.time.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
-                                onProgress(progress)
-                                lastProgressEmit = now
-                            }
+
+                        else -> {
+                            outputFile.deleteIfExists()
+                            Log.e("FFmpeg", "执行失败: ${session.failStackTrace}")
+                            continuation.resumeWithException(
+                                Exception("FFmpeg执行失败: ${session.failStackTrace}")
+                            )
                         }
                     }
-                )
-
-                continuation.invokeOnCancellation {
-                    Log.w("FFmpeg", "协程取消，停止FFmpeg会话")
-                    FFmpegKit.cancel(session.sessionId)
+                },
+                { log ->
+                    if (BuildConfig.DEBUG){
+                        Log.d("FFmpeg", "$log")
+                    }
+                },
+                { statistics ->
+                    if (statistics.time > 0 && duration > 0) {
+                        val now = System.currentTimeMillis()
+                        if (now - lastProgressEmit > 100) {
+                            val progress = (statistics.time.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                            onProgress(progress)
+                            lastProgressEmit = now
+                        }
+                    }
                 }
+            )
+
+            continuation.invokeOnCancellation {
+                Log.w("FFmpeg", "协程取消，停止FFmpeg会话")
+                FFmpegKit.cancel(session.sessionId)
             }
-        } finally {
-            FFmpegKitConfig.clearSessions()
         }
     }
 
