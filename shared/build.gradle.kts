@@ -14,6 +14,7 @@ kotlin {
         androidResources {
             enable = true
         }
+        withHostTest {}
     }
 
     listOf(
@@ -68,6 +69,11 @@ kotlin {
                 api(project(":core:common"))
                 api(project(":core:ui"))
             }
+        }
+
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 

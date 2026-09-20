@@ -7,6 +7,7 @@ plugins {
 kotlin {
     android {
         namespace = "com.imcys.bilibilias.network"
+        withHostTest {}
     }
     iosArm64()
     iosSimulatorArm64()
@@ -25,6 +26,10 @@ kotlin {
             api(libs.ktor.client.logging)
             api(libs.kotlinx.io.core)
             api(libs.kotlinx.io.bytestring)
+        }
+
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
 
         androidMain.dependencies {

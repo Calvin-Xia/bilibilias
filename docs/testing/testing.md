@@ -1,16 +1,43 @@
 # 测试与质量
 
-当前仓库已经通过 convention plugin 为 Android application module 添加了常用测试依赖：
+## 测试源集与运行方式
 
-- JUnit4
-- kotlinx-coroutines-test
-- Turbine
-- Truth
-- AndroidX Test core / runner / rules / ext-junit
-- Espresso
-- Compose UI test
+KMP 模块（`:core:common`、`:core:network`、`:shared`）通过 AGP 的 KMP host test 支持运行单元测试，源码放在各模块的 `src/commonTest/`，断言使用 `kotlin("test")`。该编译的 sourceSet tree 包含 `commonTest`，因此 `commonTest` 中的测试会自动纳入 Android host test，无需为测试单独添加 `jvm()` target。
 
-现有测试文件较少，新增功能时应按风险补测试，而不是只依赖手动点击。
+模块构建脚本中的启用方式：
+
+```kotlin
+kotlin {
+    android {
+        namespace = "..."
+        withHostTest {}
+    }
+    sourceSets {
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+    }
+}
+```
+
+对应任务为 `:core:common:testAndroidHostTest`、`:core:network:testAndroidHostTest`、`:shared:testAndroidHostTest`。
+
+`:app` 是纯 Android 模块，测试放在 `src/test/`，通过 convention plugin 已具备 JUnit4、kotlinx-coroutines-test、Turbine、Truth 依赖。
+
+## 当前测试基线
+
+新增测试前先了解现状，避免重复覆盖或误判空白：
+
+| 测试 | 模块 | 用例数 | 覆盖内容 |
+|---|---|---:|---|
+| `BiliAppSignerTest` | `core:network` | 5 | APP 签名（appkey 注入、参数排序无关性、MD5 摘要）、TV 设备指纹字段 |
+| `WebiTokenUtilsTest` | `core:network` | 3 | WBI mixinKey 生成（64 位置换表）、超短 mixKey 返回 null |
+| `AsRegexUtilTest` | `core:common` | 8 | BV/AV/EP/SS/短链/用户空间识别与优先级 |
+| `NumberUtilsTest` | `core:common` | 5 | 万/亿格式化与截断（非四舍五入） |
+| `NamingConventionHandlerTest` | `shared` | 9 | 占位符替换、`/` 替换、下划线折叠、扩展名去重、兜底分支 |
+| `FairMemoryReceiverTest` | `app` | 3 | 厂商内存回收广播动作解析 |
+
+下载链路、Room migration、`core/ui`、网络 adapter 的错误分支目前**没有测试**——补测试前请参阅 [已知问题与技术债](../architecture/known-issues.md) 的 C3 节。
 
 ## 推荐验证命令
 
@@ -20,10 +47,17 @@
 ./gradlew :app:compileAlphaDebugKotlin
 ```
 
-单元测试：
+全部单元测试：
 
 ```bash
 ./gradlew test
+```
+
+只跑某个模块的 host test（更快）：
+
+```bash
+./gradlew :core:network:testAndroidHostTest
+./gradlew :shared:testAndroidHostTest
 ```
 
 Lint：
@@ -49,12 +83,18 @@ Lint：
 ## 适合优先补测试的区域
 
 - 链接解析、BV/AV/EP/SS 输入识别、deep link 分发。
-- B 站 API response serializer、签名、token、cookie 处理。
+- B 站 API response serializer、token、cookie 处理。
 - 下载任务状态机、命名规则、字幕转换、失败恢复。
 - Room migration、converter、DAO 查询。
 - DataStore serializer 和默认值迁移。
 - ViewModel 中的 Flow 状态转换、分页、错误提示。
 - 隐私授权前后的统计开关行为。
+
+改动以下位置时请优先补测试，它们属于已知的高风险区：
+
+- `app/src/main/java/com/imcys/bilibilias/download/`：并发与状态机逻辑复杂，纯逻辑部分需先做依赖抽象才可测。
+- `core/database/.../Migration.kt`：迁移错误会直接导致升级用户崩溃。
+- `core/network/.../WebiTokenUtils.kt`、`BiliAppSigner.kt`：已有基线测试，改算法时先跑现有用例。
 
 ## Compose UI 验证
 

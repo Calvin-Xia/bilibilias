@@ -7,6 +7,7 @@ plugins {
 kotlin {
     android {
         namespace = "com.imcys.bilibilias.common"
+        withHostTest {}
     }
 
     iosArm64()
@@ -21,6 +22,9 @@ kotlin {
         androidMain.dependencies {
             api(libs.androidx.core.ktx)
             api(libs.androidx.lifecycle.runtime.ktx)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }
