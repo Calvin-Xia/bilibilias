@@ -31,6 +31,8 @@ BILIBILIAS 是第三方 B 站视频缓存工具，当前已停止公开发布 AP
 - 新增 Room entity/DAO/converter/migration 放 `core:database`，并维护 schema。
 - 新增 DataStore 字段先改 `core:datastore-proto` 的 proto，再改 serializer/source/repository/UI。
 - 下载链路改动要重点检查 `NewDownloadManager`、`DownloadExecutor`、`VideoInfoFetcher`、`FfmpegMerger`、`SubtitleDownloader`、`NamingConventionHandler` 及相关设置。
+- FFmpeg 的并发上限与会话历史上限统一由 shared 的 `DownloadRuntimePlatform.applyFfmpegRuntimeConfig` 设置，不要再在 `:app` 里加第二份实现。
+- 账号 token 与 Cookie 在 DAO 边界加密（`core:database` 的 `CredentialCipher` 与两个 `Encrypted*Dao`）。新增凭据字段或新的 DAO 查询时，要确认它经过了装饰器，且解密失败按"凭据缺失"处理、不回退明文。
 - 不要让 Compose UI 直接访问 API service、DAO 或文件下载执行器；通过 ViewModel/repository 暴露状态和动作。
 - 统计、Firebase、百度、Google Play、隐私授权相关逻辑必须保留“未授权时不主动采集”的约束。
 
@@ -46,10 +48,18 @@ BILIBILIAS 是第三方 B 站视频缓存工具，当前已停止公开发布 AP
 
 ```bash
 ./gradlew :app:compileAlphaDebugKotlin
-./gradlew test
+./gradlew :core:common:testAndroidHostTest :core:network:testAndroidHostTest \
+  :core:database:testAndroidHostTest :shared:testAndroidHostTest :app:testAlphaDebugUnitTest
 ./gradlew lint
 ./gradlew :app:assembleAlphaRelease
 ```
+
+注意：
+
+- `./gradlew test` **不覆盖 KMP 模块的测试**（`:core:common`、`:core:network`、`:core:database`、`:shared` 的用例注册在 `testAndroidHostTest`，只有 `:app` 的 3 个用例会跑）。跑全量用例请显式列出上面那组任务。
+- **不要用 `./gradlew check` 作为 Windows 上的门禁**：它会拉起 iOS 目标 klib 编译，而 `BILIBILIASDatabaseConstructor` 的 iOS actual 由 Room KSP 生成、在 Windows 上不产出，必然失败（已在 `main` 干净检出上复现，属既有问题）。改用上面的测试任务列表 + `./gradlew lint`。
+- `:app:assembleAlphaRelease` **必须单独执行**：`isDebugBuild` 会扫描同一命令里的所有任务名，与 debug 任务混跑会静默关闭 release 的 ABI split（3 个 APK 变成 1 个）。
+- 验证命令的退出码要写文件后核对，不要接 `| tail`——管道会让 `tail` 的退出码覆盖真实结果。
 
 日常开发、测试打包和快速验证优先使用 `alpha` flavor。`official` 是最终正式发行渠道，只有发行前再使用。
 

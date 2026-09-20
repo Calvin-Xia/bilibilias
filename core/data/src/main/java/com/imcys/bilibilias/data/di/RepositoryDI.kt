@@ -15,7 +15,7 @@ val repositoryModule = module {
     single { AppSettingsRepository(get(named("app_settings_datastore"))) }
     single { QRCodeLoginRepository(get(), get(), get(), get()) }
     single { RiskManagementRepository(get(), get()) }
-    single { UserInfoRepository(get(), get(),  get(), get()) }
+    single { UserInfoRepository(get(), get(),  get(), get(), get()) }
     single { VideoInfoRepository(get(), get(),  get(),get(),get(),get()) }
     single { DownloadTaskRepository(get (),get (),get (),get (),get (),get (),get ()) }
     single { BgmRepository(get()) }

@@ -153,6 +153,7 @@ class FileOutputManager(
         )
     }
 
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.Q)
     private fun moveToDownloadMediaStore(
         file: File,
         fileName: String,

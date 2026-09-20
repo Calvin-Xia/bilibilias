@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name" translatable="false">BILIBILIAS</string>
     <string name="app_channel" translatable="false">official</string>
     
@@ -109,7 +109,7 @@
     <string name="tools_video_processing">视频处理</string>
     <string name="tools_other">其他</string>
     <string name="tools_feedback">问题反馈</string>
-    <string name="tools_parser_tools">解析工具</string>
+    <string name="tools_parser_tools" tools:ignore="MissingTranslation">解析工具</string>
     
     <!-- Home screen related strings -->
     <string name="home_announcement">公告</string>

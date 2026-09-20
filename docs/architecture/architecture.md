@@ -10,7 +10,7 @@ BILIBILIAS 当前是一个以 `:app` 为 Android 入口、`:shared` 承载跨端
 - 在应用进程早期做基础初始化，例如百度统计初始化入口、Koin、内存调度和 FFmpeg 运行时配置。
 - 启动 Koin，并注册 `dataStoreModule`、`netWorkModule`、`repositoryModule`、`databaseModule`、`appModule`。
 - 初始化 `FairMemoryReceiver`，在内存压力时回收下载相关资源。
-- 从 `AppSettingsRepository` 读取下载并发和合并配置，写入 `FfmpegRuntimeConfig`。
+- 从 `AppSettingsRepository` 读取下载并发和合并配置，写入 `DownloadRuntimePlatform.applyFfmpegRuntimeConfig`。
 - 注册 Android App Functions，暴露 `BILIAnalysisAppFunctions`。
 
 `MainActivity` 负责 UI 容器和系统入口：
@@ -81,7 +81,7 @@ Android 下载链路主要包括：
 - `VideoInfoFetcher` 获取可下载媒体信息。
 - `FileOutputManager` 管理输出位置。
 - `DownloadExecutor` 执行网络下载。
-- `FfmpegMerger` 和 `FfmpegRuntimeConfig` 管理媒体合并。
+- `FfmpegMerger` 管理媒体合并，FFmpeg 运行时并发由 shared 的 `DownloadRuntimePlatform.applyFfmpegRuntimeConfig` 设置。
 - `SubtitleDownloader` 负责字幕下载。
 
 shared 下载包主要包括：

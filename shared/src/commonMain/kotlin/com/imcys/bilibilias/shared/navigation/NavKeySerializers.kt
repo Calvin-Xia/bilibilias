@@ -7,10 +7,10 @@ import com.imcys.bilibilias.shared.feature.download.navigation.DownloadRoute
 import com.imcys.bilibilias.shared.feature.event.playvoucher.navigation.PlayVoucherErrorRoute
 import com.imcys.bilibilias.shared.feature.event.requestFrequent.RequestFrequentRoute
 import com.imcys.bilibilias.shared.feature.home.navigation.HomeRoute
-import com.imcys.bilibilias.shared.feature.login.CookeLoginRoute
+import com.imcys.bilibilias.shared.feature.login.CookieLoginRoute
 import com.imcys.bilibilias.shared.feature.login.navigation.LoginRoute
 import com.imcys.bilibilias.shared.feature.login.navigation.QRCodeLoginRoute
-import com.imcys.bilibilias.shared.feature.setting.about.AboutRouter
+import com.imcys.bilibilias.shared.feature.setting.about.AboutRoute
 import com.imcys.bilibilias.shared.feature.setting.complaint.ComplaintRoute
 import com.imcys.bilibilias.shared.feature.setting.contract.NamingConventionRoute
 import com.imcys.bilibilias.shared.feature.setting.developer.LineConfigRoute
@@ -40,13 +40,13 @@ import kotlinx.serialization.modules.subclass
 
 internal val navKeySerializersModule = SerializersModule {
     polymorphic(NavKey::class) {
-        navKey(AboutRouter.serializer())
+        navKey(AboutRoute.serializer())
         navKey(AnalysisRoute.serializer())
         navKey(AppVersionInfoRoute.serializer())
         navKey(BangumiFollowRoute.serializer())
         navKey(CalendarRoute.serializer())
         navKey(ComplaintRoute.serializer())
-        navKey(CookeLoginRoute.serializer())
+        navKey(CookieLoginRoute.serializer())
         navKey(DownloadConfigRoute.serializer())
         navKey(DownloadRoute.serializer())
         navKey(DonateRoute.serializer())

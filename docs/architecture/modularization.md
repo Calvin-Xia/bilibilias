@@ -16,7 +16,7 @@ BILIBILIAS 使用 Gradle 多 module。根 `settings.gradle.kts` 当前包含：
 
 当前 FFmpeg 能力由 `app` 直接依赖第三方库 `com.moizhassan.ffmpeg:ffmpeg-kit-16kb` 提供。
 
-仓库里仍保留 `core/ffmpeg` 目录和相关源码，但 `settings.gradle.kts` 当前没有 `include(":core:ffmpeg")`，而是以注释形式标注“暂时废除”。因此它目前不是参与构建的正式 module，只能视为保留中的历史实现。
+历史上曾保留 `core/ffmpeg`（自编译 FFmpeg 与逐帧工具）与 `core/ksp-processor`（Koin 原生导出处理器）两个未纳入构建的模块。两者已作为死代码删除，连同 `FFmpegVerificationConventionPlugin`、版本目录中仅服务它们的条目与 `gradle.properties` 的 `as.ffmpeg.version` 一并清理；如需找回可从 git 历史取。详见 [已知问题与技术债](./known-issues.md) 的 D2。
 
 ## Module 职责
 
@@ -72,10 +72,9 @@ BILIBILIAS 使用 Gradle 多 module。根 `settings.gradle.kts` 当前包含：
 
 ## 暂退模块与保留代码
 
-- `core/ffmpeg`：当前未纳入 `settings.gradle.kts`，不会参与正常编译、测试或打包。
-- 当前生效的媒体合并与逐帧相关能力，主要分别来自 `:app` 下载链路中的 `FfmpegMerger` / `FfmpegRuntimeConfig`，以及 `app` 直接依赖的 `ffmpeg-kit`。
-- 如果后续要重新启用 `core/ffmpeg`，应先同步更新 `settings.gradle.kts`、模块依赖关系、构建文档和媒体链路文档，而不是只恢复目录引用。
-- `core/ksp-processor`：Koin 原生导出处理器（为 SwiftUI iOS 工程引入），同样未纳入 `settings.gradle.kts`。它配套的 `@KoinNativeExport` 注解保留在 `core:common` 中。当前没有任何类使用该注解，因此即使接入也不会产出代码；接入前应先确认 iOS 侧确实需要 `DataProvider` 导出。
+`core/ffmpeg` 与 `core/ksp-processor` 两个未纳入构建的模块已删除（见上）。当前生效的媒体合并与逐帧相关能力来自 `:app` 下载链路中的 `FfmpegMerger`，以及 `app` 直接依赖的 `ffmpeg-kit`。
+
+FFmpeg 的并发上限与会话历史上限统一由 `shared` 的 `DownloadRuntimePlatform.applyFfmpegRuntimeConfig` 设置（`app` 中曾有一份重复实现，已合并）。调整并发策略时只需改这一处。
 
 ## 依赖方向
 

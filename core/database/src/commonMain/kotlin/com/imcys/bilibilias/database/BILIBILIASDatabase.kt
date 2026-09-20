@@ -24,7 +24,7 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
         DownloadTaskNode::class,
         DownloadSegment::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class BILIBILIASDatabase : RoomDatabase() {
@@ -46,6 +46,6 @@ internal fun buildDatabase(
 ): BILIBILIASDatabase {
     return builder
         .setDriver(BundledSQLiteDriver())
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
         .build()
 }

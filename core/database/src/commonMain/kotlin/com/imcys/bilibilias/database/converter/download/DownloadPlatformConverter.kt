@@ -4,9 +4,11 @@ import androidx.room3.TypeConverter
 import com.imcys.bilibilias.database.entity.download.DownloadPlatform
 
 class DownloadPlatformConverter {
+    /** 非法值回退到 [DownloadPlatform.BILIBILI]。非空字段不能回退为 null，详见 [CookieEncodingConverter] 的说明。 */
     @TypeConverter
-    fun fromString(value: String?): DownloadPlatform? {
-        return value?.let { DownloadPlatform.valueOf(value) }
+    fun fromString(value: String?): DownloadPlatform {
+        return value?.let { runCatching { DownloadPlatform.valueOf(it) }.getOrNull() }
+            ?: DownloadPlatform.BILIBILI
     }
 
     @TypeConverter

@@ -4,9 +4,16 @@ import androidx.room3.TypeConverter
 import com.imcys.bilibilias.database.entity.ASSharedCookieEncoding
 
 class CookieEncodingConverter {
+    /**
+     * 非法值回退到 [ASSharedCookieEncoding.URI_ENCODING]。
+     *
+     * 该字段在实体中非空，Room 生成的读取代码在转换结果为 null 时会直接抛错，
+     * 因此这里必须给出默认值，而不是让 valueOf 抛异常或返回 null。
+     */
     @TypeConverter
-    fun fromString(value: String?): ASSharedCookieEncoding? {
-        return value?.let { ASSharedCookieEncoding.valueOf(value) }
+    fun fromString(value: String?): ASSharedCookieEncoding {
+        return value?.let { runCatching { ASSharedCookieEncoding.valueOf(it) }.getOrNull() }
+            ?: ASSharedCookieEncoding.URI_ENCODING
     }
 
     @TypeConverter

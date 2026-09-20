@@ -122,7 +122,7 @@ import com.imcys.bilibilias.shared.platform.component.ASHtmlText
 import com.imcys.bilibilias.shared.platform.runtime.openLink
 import com.imcys.bilibilias.shared.platform.permission.rememberLegacyStoragePermissionController
 import com.imcys.bilibilias.shared.platform.clipboard.setClipboardText
-import com.imcys.bilibilias.shared.feature.analysis.components.DongmhuaDownloadScreen
+import com.imcys.bilibilias.shared.feature.analysis.components.DonghuaDownloadScreen
 import com.imcys.bilibilias.shared.feature.analysis.components.VideoDownloadScreen
 import com.imcys.bilibilias.shared.feature.analysis.navigation.AnalysisRoute
 import com.imcys.bilibilias.ui.utils.rememberWidthSizeClass
@@ -1454,7 +1454,7 @@ private fun AnalysisDownloadConfigContent(
 
     when (asLinkResultType) {
         is ASLinkResultType.BILI.Donghua -> {
-            DongmhuaDownloadScreen(
+            DonghuaDownloadScreen(
                 downloadInfo,
                 donghuaPlayerInfo,
                 currentUserInfo,
