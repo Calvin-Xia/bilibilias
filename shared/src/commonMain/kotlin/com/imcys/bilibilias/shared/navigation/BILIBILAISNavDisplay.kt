@@ -62,14 +62,14 @@ import com.imcys.bilibilias.shared.feature.event.requestFrequent.RequestFrequent
 import com.imcys.bilibilias.shared.feature.event.requestFrequent.RequestFrequentScreen
 import com.imcys.bilibilias.shared.feature.home.HomeScreen
 import com.imcys.bilibilias.shared.feature.home.navigation.HomeRoute
-import com.imcys.bilibilias.shared.feature.login.CookeLoginRoute
-import com.imcys.bilibilias.shared.feature.login.CookeLoginScreen
+import com.imcys.bilibilias.shared.feature.login.CookieLoginRoute
+import com.imcys.bilibilias.shared.feature.login.CookieLoginScreen
 import com.imcys.bilibilias.shared.feature.login.LoginScreen
 import com.imcys.bilibilias.shared.feature.login.QRCodeLoginScreen
 import com.imcys.bilibilias.shared.feature.login.navigation.LoginRoute
 import com.imcys.bilibilias.shared.feature.login.navigation.QRCodeLoginRoute
 import com.imcys.bilibilias.shared.feature.setting.SettingScreen
-import com.imcys.bilibilias.shared.feature.setting.about.AboutRouter
+import com.imcys.bilibilias.shared.feature.setting.about.AboutRoute
 import com.imcys.bilibilias.shared.feature.setting.about.AboutScreen
 import com.imcys.bilibilias.shared.feature.setting.complaint.ComplaintRoute
 import com.imcys.bilibilias.shared.feature.setting.complaint.ComplaintScreen
@@ -335,7 +335,7 @@ fun BILIBILAISNavDisplay() {
                             backStack.add(HomeRoute(isFormLogin = true))
                         },
                         onToCookieLogin = {
-                            backStack.add(CookeLoginRoute)
+                            backStack.add(CookieLoginRoute)
                         }
                     )
                 }
@@ -412,7 +412,7 @@ fun BILIBILAISNavDisplay() {
                         onToBack = onBack,
                         onToComplaint = { backStack.addWithReuse(ComplaintRoute) },
                         onToLayoutTypeset = { backStack.addWithReuse(LayoutTypesetRoute) },
-                        onToAbout = { backStack.addWithReuse(AboutRouter) },
+                        onToAbout = { backStack.addWithReuse(AboutRoute) },
                         onToVersionInfo = { backStack.addWithReuse(AppVersionInfoRoute) },
                         onToSystemExpand = { backStack.addWithReuse(SystemExpandRoute) },
                         onToStorageManagement = { backStack.addWithReuse(StorageManagementRoute) },
@@ -502,11 +502,11 @@ fun BILIBILAISNavDisplay() {
                         onToBack = onBack
                     )
                 }
-                entry<AboutRouter>(
+                entry<AboutRoute>(
                     metadata = ListDetailSceneStrategy.detailPane()
                 ) {
                     AboutScreen(
-                        aboutRouter = it,
+                        aboutRoute = it,
                         onToBack = onBack
                     )
                 }
@@ -518,8 +518,8 @@ fun BILIBILAISNavDisplay() {
                         onToBack = onBack
                     )
                 }
-                entry<CookeLoginRoute> {
-                    CookeLoginScreen(cookeLoginRoute = it, onToBack = {
+                entry<CookieLoginRoute> {
+                    CookieLoginScreen(cookieLoginRoute = it, onToBack = {
                         backStack.removeLastOrNullSafe()
                     }, onFinish = {
                         backStack.clear()

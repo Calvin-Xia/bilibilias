@@ -71,14 +71,14 @@ import org.koin.compose.viewmodel.koinViewModel
 
 
 @Serializable
-data object CookeLoginRoute : NavKey
+data object CookieLoginRoute : NavKey
 
 @Composable
-fun CookeLoginScreen(cookeLoginRoute: CookeLoginRoute, onToBack: () -> Unit, onFinish: () -> Unit) {
+fun CookieLoginScreen(cookieLoginRoute: CookieLoginRoute, onToBack: () -> Unit, onFinish: () -> Unit) {
     val vm = koinViewModel<CookieLoginViewModel>()
     val userInfo by vm.loginUserInfoState.collectAsStateWithLifecycle()
-    CookeLoginScaffold(onToBack) { paddingValues ->
-        CookeLoginContent(
+    CookieLoginScaffold(onToBack) { paddingValues ->
+        CookieLoginContent(
             userInfo = userInfo,
             onCheckCookies = vm::checkCookies,
             onSaveLoginCookie = vm::saveLoginCookie,
@@ -89,7 +89,7 @@ fun CookeLoginScreen(cookeLoginRoute: CookeLoginRoute, onToBack: () -> Unit, onF
 }
 
 @Composable
-fun CookeLoginContent(
+fun CookieLoginContent(
     userInfo: NetWorkResult<BILILoginUserModel?>,
     onCheckCookies: (String) -> Unit,
     onSaveLoginCookie: suspend () -> Unit,
@@ -229,7 +229,7 @@ fun UserCard(modifier: Modifier = Modifier, mid: Long, name: String, level: Int,
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CookeLoginScaffold(onToBack: () -> Unit, content: @Composable (PaddingValues) -> Unit) {
+private fun CookieLoginScaffold(onToBack: () -> Unit, content: @Composable (PaddingValues) -> Unit) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {

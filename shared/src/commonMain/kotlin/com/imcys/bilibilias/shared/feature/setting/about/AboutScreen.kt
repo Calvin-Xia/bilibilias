@@ -45,12 +45,12 @@ import com.imcys.bilibilias.ui.component.maybeNestedScroll
 import kotlinx.serialization.Serializable
 
 @Serializable
-data object AboutRouter : NavKey
+data object AboutRoute : NavKey
 
 @Preview
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutScreen(aboutRouter: AboutRouter = AboutRouter, onToBack: () -> Unit = {}) {
+fun AboutScreen(aboutRoute: AboutRoute = AboutRoute, onToBack: () -> Unit = {}) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(

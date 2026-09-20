@@ -59,7 +59,7 @@ typealias UpdateSelectedEpList = (epIdList: List<Long>) -> Unit
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun DongmhuaDownloadScreen(
+fun DonghuaDownloadScreen(
     downloadInfo: DownloadViewInfo?,
     donghuaPlayerInfo: NetWorkResult<BILIDonghuaPlayerSynthesize?>,
     currentUserInfo: BILIUsersEntity?,
