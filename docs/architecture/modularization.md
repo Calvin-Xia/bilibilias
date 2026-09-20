@@ -75,6 +75,7 @@ BILIBILIAS 使用 Gradle 多 module。根 `settings.gradle.kts` 当前包含：
 - `core/ffmpeg`：当前未纳入 `settings.gradle.kts`，不会参与正常编译、测试或打包。
 - 当前生效的媒体合并与逐帧相关能力，主要分别来自 `:app` 下载链路中的 `FfmpegMerger` / `FfmpegRuntimeConfig`，以及 `app` 直接依赖的 `ffmpeg-kit`。
 - 如果后续要重新启用 `core/ffmpeg`，应先同步更新 `settings.gradle.kts`、模块依赖关系、构建文档和媒体链路文档，而不是只恢复目录引用。
+- `core/ksp-processor`：Koin 原生导出处理器（为 SwiftUI iOS 工程引入），同样未纳入 `settings.gradle.kts`。它配套的 `@KoinNativeExport` 注解保留在 `core:common` 中。当前没有任何类使用该注解，因此即使接入也不会产出代码；接入前应先确认 iOS 侧确实需要 `DataProvider` 导出。
 
 ## 依赖方向
 
@@ -117,7 +118,6 @@ BILIBILIAS 使用 Gradle 多 module。根 `settings.gradle.kts` 当前包含：
 
 - `bilibilias.android.application`：应用 module 公共配置，应用 Compose 插件，设置 targetSdk，并添加测试依赖。
 - `bilibilias.android.library`：Android library 公共配置，设置 compileSdk/minSdk/JVM、test runner 和资源前缀。
-- `bilibilias.jvm.library`：JVM module 公共配置。
 - `bilibilias.android.koin`：统一添加 Koin 依赖，Compose module 会附加 koin-compose。
 - `bilibilias.baidu.jar`：处理百度统计 jar。
 

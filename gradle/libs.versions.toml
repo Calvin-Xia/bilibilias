@@ -13,6 +13,7 @@ androidDesugarJdkLibs = "2.1.5"
 koinBom = "4.2.0"
 androidxLifecycle = "2.10.0"
 ksp = "2.3.4"
+kotlinpoet = "2.4.0"
 protobufPlugin = "0.9.6"
 androidxDatastore = "1.2.0"
 firebaseBom = "34.6.0"
@@ -117,6 +118,10 @@ kotlinx-io-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-io-core", v
 kotlinx-io-bytestring = { group = "org.jetbrains.kotlinx", name = "kotlinx-io-bytestring", version.ref = "kotlinxIo" }
 wire-runtime = { group = "com.squareup.wire", name = "wire-runtime", version.ref = "wire" }
 okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
+
+# core/ksp-processor 的依赖（该模块当前未 include 进构建）
+ksp-api = { group = "com.google.devtools.ksp", name = "symbol-processing-api", version.ref = "ksp" }
+kotlinpoet = { group = "com.squareup.kotlinpoet", name = "kotlinpoet", version.ref = "kotlinpoet" }
 # Core Navigation 3 libraries
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }
 jetbrains-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "multiplatformNav3Ui" }
@@ -185,6 +190,5 @@ bilibilias-android-application = { id = "bilibilias.android.application" }
 bilibilias-android-koin = { id = "bilibilias.android.koin" }
 bilibilias-multiplatform-koin = { id = "bilibilias.multiplatform.koin" }
 bilibilias-android-ffmpegVerification = { id = "bilibilias.android.ffmpegVerification" }
-bilibilias-jvm-library = { id = "bilibilias.jvm.library" }
 bilibilias-multiplatform-library = { id = "bilibilias.multiplatform.library" }
 bilibilias-baidu-jar = { id = "bilibilias.baidu.jar" }

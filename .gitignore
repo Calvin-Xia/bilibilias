@@ -10,6 +10,7 @@
 local.properties
 .kotlin
 /common/build
+app/libs
 app/release
 app/alpha
 app/debug

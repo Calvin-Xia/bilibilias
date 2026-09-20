@@ -3,9 +3,10 @@
 ## 环境要求
 
 - Android Studio 或命令行 Android SDK。
-- JDK 17 用于 Gradle/build-logic；Android/Kotlin 编译目标为 Java 11。
-- Android Gradle Plugin 9.2.0、Kotlin 2.3.0、Gradle wrapper 以仓库为准。
-- Android SDK compileSdk 37。
+- JDK 21 用于 Gradle daemon：由 `gradle/gradle-daemon-jvm.properties` 的 `toolchainVersion=21` 锁定，本机没有时 Gradle 会在首次构建自动下载（实测为 Adoptium 21.0.7），无需手动配置 `JAVA_HOME`。Android/Kotlin 编译目标为 Java 11。
+- Android Gradle Plugin 9.2.0、Kotlin 2.3.0、Gradle wrapper 以仓库为准（wrapper 当前为 Gradle 9.4.1，`gradle-wrapper.properties` 中固定了 `distributionSha256Sum`）。
+- Android SDK compileSdk 37：需要 `platforms;android-37.0`。本机缺失时 AGP 会在构建时自动下载（需 `android-sdk-license` 已接受），不需要 `sdkmanager`。
+- 首次构建需要联网下载 Gradle 发行版、JDK 与全部 Maven 依赖，耗时较长。
 
 优先使用仓库内 wrapper：
 
@@ -40,7 +41,13 @@ as.github.repository=bilibilias
 
 但要注意：这些属性不是所有 flavor 都原样继承。比如 `alpha` flavor 会把 `ENABLED_PLAY_APP_MODE` 固定写成 `false`，因此仅修改 `gradle.properties` 并不会让 `alpha` 变体进入 Play 模式。详细组合规则见 [构建矩阵与开关组合](./build-matrix.md)。
 
-`local.properties` 是本机 Android SDK 配置，不应提交。
+`local.properties` 是本机 Android SDK 配置，不应提交（已在 `.gitignore` 中忽略）。需要指向本机 SDK 路径，否则构建会以 “SDK location not found” 失败：
+
+```properties
+sdk.dir=C:/Users/<用户名>/AppData/Local/Android/Sdk
+```
+
+也可以改用 `ANDROID_HOME` 环境变量指定，两者取其一即可。
 
 ## 构建变体
 
@@ -129,4 +136,8 @@ ABI：
 
 ## 百度统计 jar
 
-`app` 使用 `bilibilias.baidu.jar` convention plugin 和 `baiduStatDependencies()`。当 `app/libs/Baidu_Mtj_android_*.jar` 存在且满足开关条件时会作为实现依赖，否则以 `compileOnly` 或不参与方式处理。不要手动复制不明来源 jar 到仓库。
+`app` 使用 `bilibilias.baidu.jar` convention plugin 和 `baiduStatDependencies()`。
+
+`BaiduJarDownloadConventionPlugin` 在配置阶段检查 `app/libs/Baidu_Mtj_android_4.0.11.0.jar`，缺失时从项目维护的地址自动下载，因此首次构建会在仓库内生成 `app/libs/`（该目录已在 `.gitignore` 中忽略）。下载失败时插件只打印错误、不中断配置；但 `enabledAnalytics=true` 时该 jar 是实现依赖，且 `BILIBILIASApplication`、`MainActivity` 直接引用 `com.baidu.mobstat.StatService`，失败会表现为编译错误——遇到 StatService 相关报错时先确认该 jar 是否下载成功。
+
+当 `app/libs/Baidu_Mtj_android_*.jar` 存在且满足开关条件时会作为实现依赖，否则以 `compileOnly` 或不参与方式处理。不要手动复制不明来源 jar 到仓库。
