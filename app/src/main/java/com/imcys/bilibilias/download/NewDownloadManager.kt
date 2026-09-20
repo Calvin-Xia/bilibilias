@@ -44,6 +44,7 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsBytes
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -63,9 +64,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.OkHttpClient
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * 新的下载管理器 - 使用重构后的组件
@@ -116,9 +121,10 @@ class NewDownloadManager(
     }
 
     private val _downloadTasks = MutableStateFlow<List<AppDownloadTask>>(emptyList())
-    private var isInit = false
-    private var isDownloading = false
+    private val isInit = AtomicBoolean(false)
+    private val isDownloading = AtomicBoolean(false)
     private val activeDownloadJobs = ConcurrentHashMap<Long, Job>()
+    private val schedulingMutex = Mutex()
     private val downloadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var downloadService: DownloadService? = null
@@ -138,8 +144,7 @@ class NewDownloadManager(
     }
 
     override suspend fun initDownloadList() {
-        if (isInit) return
-        isInit = true
+        if (!isInit.compareAndSet(false, true)) return
 
         val segments = downloadTaskRepository.getSegmentAll().last()
         segments.forEach { segment ->
@@ -178,7 +183,7 @@ class NewDownloadManager(
             throw error
         }
 
-        if (!isDownloading) {
+        if (!isDownloading.get()) {
             startDownloadQueueService()
         }
     }
@@ -210,7 +215,7 @@ class NewDownloadManager(
         updateTaskState(task, DownloadState.WAITING)
         downloadTaskRepository.updateSegment(task.downloadSegment.copy(downloadState = DownloadState.WAITING))
 
-        if (!isDownloading) {
+        if (!isDownloading.get()) {
             startDownloadQueueService()
             return
         }
@@ -245,7 +250,7 @@ class NewDownloadManager(
         }
 
     fun startDownloadQueueService() {
-        if (isDownloading) return
+        if (isDownloading.get()) return
         if (!isAppInForeground(context)) return
 
         val intent = Intent(context, DownloadService::class.java)
@@ -284,7 +289,7 @@ class NewDownloadManager(
 
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private suspend fun startDownloadQueue(downloadService: DownloadService) {
-        isDownloading = true
+        isDownloading.set(true)
 
         while (true) {
             checkAndStartNextDownload()
@@ -309,33 +314,39 @@ class NewDownloadManager(
 
         downloadService.onDownloadFinished()
         runCatching { context.unbindService(downloadConn) }
-        isDownloading = false
+        isDownloading.set(false)
     }
 
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private suspend fun checkAndStartNextDownload() {
         val maxConcurrentDownloads = getMaxConcurrentDownloads()
 
-        while (activeDownloadJobs.size < maxConcurrentDownloads) {
-            val nextTask = _downloadTasks.value.firstOrNull {
-                it.downloadState == DownloadState.WAITING &&
-                        !activeDownloadJobs.containsKey(it.downloadSegment.segmentId)
-            } ?: return
+        schedulingMutex.withLock {
+            while (activeDownloadJobs.size < maxConcurrentDownloads) {
+                val nextTask = _downloadTasks.value.firstOrNull {
+                    it.downloadState == DownloadState.WAITING &&
+                            !activeDownloadJobs.containsKey(it.downloadSegment.segmentId)
+                } ?: return@withLock
 
-            val job = downloadScope.launch {
-                try {
-                    executeTaskDownload(nextTask)
-                } catch (e: CancellationException) {
-                    // 协程被取消
-                } catch (e: Exception) {
-                    handleTaskError(nextTask, e)
-                } finally {
-                    activeDownloadJobs.remove(nextTask.downloadSegment.segmentId)
-                    checkAndStartNextDownload()
+                // 以 LAZY 创建并先登记、后启动：若协程在登记前就结束，
+                // finally 中的移除会先于登记发生，从而把已完成的 Job 留在表里，
+                // 导致队列永远无法排空。
+                val job = downloadScope.launch(start = CoroutineStart.LAZY) {
+                    try {
+                        executeTaskDownload(nextTask)
+                    } catch (e: CancellationException) {
+                        // 协程被取消
+                    } catch (e: Exception) {
+                        handleTaskError(nextTask, e)
+                    } finally {
+                        activeDownloadJobs.remove(nextTask.downloadSegment.segmentId)
+                        checkAndStartNextDownload()
+                    }
                 }
-            }
 
-            activeDownloadJobs[nextTask.downloadSegment.segmentId] = job
+                activeDownloadJobs[nextTask.downloadSegment.segmentId] = job
+                job.start()
+            }
         }
     }
 
@@ -441,20 +452,21 @@ class NewDownloadManager(
         val videoTask = task.downloadSubTasks.first()
         val audioTask = task.downloadSubTasks.last()
 
-        var videoProgress = 0f
-        var audioProgress = 0f
+        // 两个子任务并发下载并各自回调进度，因此用原子引用而非普通 var
+        val videoProgress = AtomicReference(0f)
+        val audioProgress = AtomicReference(0f)
 
         val videoResult = async {
             downloadSubTask(videoTask, task, task.downloadSegment.namingConventionInfo) {
-                videoProgress = it
-                progressCallback((videoProgress + audioProgress) / 2f)
+                videoProgress.set(it)
+                progressCallback((videoProgress.get() + audioProgress.get()) / 2f)
             }
         }
 
         val audioResult = async {
             downloadSubTask(audioTask, task, task.downloadSegment.namingConventionInfo) {
-                audioProgress = it
-                progressCallback((videoProgress + audioProgress) / 2f)
+                audioProgress.set(it)
+                progressCallback((videoProgress.get() + audioProgress.get()) / 2f)
             }
         }
 

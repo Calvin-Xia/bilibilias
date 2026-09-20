@@ -8,9 +8,11 @@ import io.ktor.client.request.head
 import io.ktor.client.request.header
 import io.ktor.client.request.prepareGet
 import io.ktor.client.statement.bodyAsChannel
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentLength
 import io.ktor.utils.io.exhausted
 import io.ktor.utils.io.readAvailable
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -65,6 +67,9 @@ class DownloadExecutor(
                     tempFile.renameTo(file)
                     return@withContext true
                 }
+            } catch (e: CancellationException) {
+                // 取消（暂停/删除任务）需要立即生效，不能继续重试
+                throw e
             } catch (e: Exception) {
                 if (attempt < MAX_RETRY_ATTEMPTS - 1) {
                     delay(RETRY_DELAY_MS)
@@ -83,6 +88,8 @@ class DownloadExecutor(
                 header("Referer", referer)
             }
             headResp.headers["Content-Length"]?.toLongOrNull() ?: -1L
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             -1L
         }
@@ -104,20 +111,25 @@ class DownloadExecutor(
                 header("Referer", referer)
                 if (downloaded > 0) header("Range", "bytes=$downloaded-")
             }.execute { response ->
+                // 已请求 Range 但服务端未返回 206，说明它忽略了 Range 并发下完整文件。
+                // 此时必须从头覆写临时文件（canAppend=false 会让 FileOutputStream 截断），
+                // 否则追加写入会让文件内容重复、长度异常。
+                val canAppend = downloaded > 0 && response.status == HttpStatusCode.PartialContent
+
                 tempFile.parentFile?.mkdirs()
                 val channel = response.bodyAsChannel()
 
                 val contentLength = response.contentLength()
                 val totalLength = if (contentLength != null && contentLength > 0) {
-                    contentLength + downloaded
+                    contentLength + if (canAppend) downloaded else 0L
                 } else {
                     -1L
                 }
 
                 val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE.toInt())
-                var downloadedBytes = downloaded
+                var downloadedBytes = if (canAppend) downloaded else 0L
 
-                FileOutputStream(tempFile, downloaded > 0).use { output ->
+                FileOutputStream(tempFile, canAppend).use { output ->
                     while (!channel.exhausted()) {
                         val bytesRead = channel.readAvailable(buffer)
                         if (bytesRead == -1) break
@@ -142,6 +154,8 @@ class DownloadExecutor(
                 onProgress(1f)
                 true
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             false
         }
