@@ -9,6 +9,7 @@ plugins {
 kotlin {
     android {
         namespace = "com.imcys.bilibilias.database"
+        withHostTest {}
     }
 
     iosArm64()
@@ -22,6 +23,10 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.androidx.room3.sqlite.wrapper)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }

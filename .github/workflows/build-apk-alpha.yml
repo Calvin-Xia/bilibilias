@@ -34,6 +34,15 @@ jobs:
       - name: Clean
         run: ./gradlew clean
 
+      - name: Unit tests
+        run: >
+          ./gradlew
+          :core:common:testAndroidHostTest
+          :core:network:testAndroidHostTest
+          :core:database:testAndroidHostTest
+          :shared:testAndroidHostTest
+          :app:testAlphaDebugUnitTest
+
       - name: Assemble alphaRelease
         run: ./gradlew :app:assembleAlphaRelease --stacktrace --info
 
