@@ -2,6 +2,7 @@ package com.imcys.bilibilias.datastore
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.core.okio.OkioSerializer
 import androidx.datastore.core.okio.OkioStorage
 import kotlinx.coroutines.CoroutineScope
@@ -19,23 +20,27 @@ internal fun createAppSettingsStore(): DataStore<AppSettings> =
     createDataStore(
         fileName = APP_SETTINGS_FILE_NAME,
         serializer = AppSettingsSerializer,
+        defaultValue = AppSettings.getDefaultInstance(),
     )
 
 internal fun createUserStore(): DataStore<User> =
     createDataStore(
         fileName = USER_FILE_NAME,
         serializer = UserSerializer,
+        defaultValue = User.getDefaultInstance(),
     )
 
 internal fun createGooglePlayStore(): DataStore<GooglePlaySettings> =
     createDataStore(
         fileName = GOOGLE_PLAY_FILE_NAME,
         serializer = GooglePlayerSerializer,
+        defaultValue = GooglePlaySettings.getDefaultInstance(),
     )
 
 private fun <T> createDataStore(
     fileName: String,
     serializer: OkioSerializer<T>,
+    defaultValue: T,
 ): DataStore<T> {
     return DataStoreFactory.create(
         storage = OkioStorage(
@@ -43,6 +48,8 @@ private fun <T> createDataStore(
             serializer = serializer,
             producePath = { createDataStorePath(fileName) },
         ),
+        // `.pb` 损坏时重置为默认值：设置与用户标记丢失可接受，比设置页持续抛异常更可取
+        corruptionHandler = ReplaceFileCorruptionHandler { defaultValue },
         scope = CoroutineScope(Dispatchers.Default + SupervisorJob()),
     )
 }
