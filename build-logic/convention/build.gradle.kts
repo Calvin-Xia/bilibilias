@@ -58,12 +58,6 @@ gradlePlugin {
             version = "unspecified"
         }
 
-        register("ffmpegVerification"){
-            id = libs.plugins.bilibilias.android.ffmpegVerification.get().pluginId
-            implementationClass = "FFmpegVerificationConventionPlugin"
-            version = "unspecified"
-        }
-
         register("baiduJar"){
             id = libs.plugins.bilibilias.baidu.jar.get().pluginId
             implementationClass = "BaiduJarDownloadConventionPlugin"

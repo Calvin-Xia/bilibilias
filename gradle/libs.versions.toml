@@ -119,9 +119,6 @@ kotlinx-io-bytestring = { group = "org.jetbrains.kotlinx", name = "kotlinx-io-by
 wire-runtime = { group = "com.squareup.wire", name = "wire-runtime", version.ref = "wire" }
 okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
 
-# core/ksp-processor 的依赖（该模块当前未 include 进构建）
-ksp-api = { group = "com.google.devtools.ksp", name = "symbol-processing-api", version.ref = "ksp" }
-kotlinpoet = { group = "com.squareup.kotlinpoet", name = "kotlinpoet", version.ref = "kotlinpoet" }
 # Core Navigation 3 libraries
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }
 jetbrains-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "multiplatformNav3Ui" }
@@ -189,6 +186,5 @@ bilibilias-android-library = { id = "bilibilias.android.library" }
 bilibilias-android-application = { id = "bilibilias.android.application" }
 bilibilias-android-koin = { id = "bilibilias.android.koin" }
 bilibilias-multiplatform-koin = { id = "bilibilias.multiplatform.koin" }
-bilibilias-android-ffmpegVerification = { id = "bilibilias.android.ffmpegVerification" }
 bilibilias-multiplatform-library = { id = "bilibilias.multiplatform.library" }
 bilibilias-baidu-jar = { id = "bilibilias.baidu.jar" }

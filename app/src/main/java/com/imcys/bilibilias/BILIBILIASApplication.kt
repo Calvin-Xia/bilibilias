@@ -12,10 +12,10 @@ import com.imcys.bilibilias.data.repository.AppSettingsRepository
 import com.imcys.bilibilias.datastore.enabledConcurrentMerge
 import com.imcys.bilibilias.datastore.maxConcurrentDownloads
 import com.imcys.bilibilias.di.androidPlatformKoinModules
-import com.imcys.bilibilias.download.FfmpegRuntimeConfig
 import com.imcys.bilibilias.download.NewDownloadManager
 import com.imcys.bilibilias.shared.download.runtime.SharedDownloadManager
 import com.imcys.bilibilias.shared.di.sharedKoinModules
+import com.imcys.bilibilias.shared.platform.runtime.DownloadRuntimePlatform
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -93,7 +93,7 @@ class BILIBILIASApplication : Application(), AppFunctionConfiguration.Provider {
         applicationScope.launch {
             val settingsRepository = getKoin().get<AppSettingsRepository>()
             val settings = settingsRepository.appSettingsFlow.first()
-            FfmpegRuntimeConfig.apply(
+            DownloadRuntimePlatform.applyFfmpegRuntimeConfig(
                 maxConcurrentDownloads = settings.maxConcurrentDownloads,
                 enabledConcurrentMerge = settings.enabledConcurrentMerge
             )
