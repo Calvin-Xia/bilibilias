@@ -38,7 +38,7 @@
 
 当前数据库版本：
 
-- `version = 4`
+- `version = 5`（5 版本起凭据加密，见下节）
 
 当前实体：
 
@@ -53,6 +53,24 @@ DAO：
 - `BILIUsersDao`
 - `BILIUserCookiesDao`
 - `DownloadTaskDao`
+
+## 凭据加密
+
+账号 token（`BILIUsersEntity.accessToken` / `refreshToken`）与 Cookie 值（`BILIUserCookiesEntity.value`）在 **DAO 边界**加解密，业务代码拿到的始终是明文实体。
+
+实现分三层：
+
+- `crypto/CredentialCipher.kt`：接口与 `platformCredentialCipher()` expect/actual，外加测试与 iOS 用的 `PassthroughCredentialCipher`
+- `androidMain/.../AndroidKeystoreCredentialCipher.kt`：Android 实现，密钥由 Keystore 生成保管（AES-GCM，密钥不可导出），密文格式为 `v1:` + Base64(IV ‖ 密文)
+- `dao/EncryptedBILIUsersDao.kt`、`dao/EncryptedBILIUserCookiesDao.kt`：装饰真实 DAO，写前加密、读后解密
+
+Koin 由 `databaseModule` 把 `CredentialCipher` 绑定为 `platformCredentialCipher()`，并把两个 DAO 工厂指向装饰器；因此所有注入 `BILIUsersDao` / `BILIUserCookiesDao` 的调用点（repository、`AsCookiesStorage`、`RoamPlugin`、`SettingViewModel` 等）自动获得加密能力，无需改动业务代码。
+
+失败语义：解密失败（密钥失效、数据被篡改、格式不符）一律按凭据缺失处理——token 以 null 返回，Cookie 记录被剔除，**不回退明文、不抛异常**。启动时 `BILIBILIASAppViewModel.reconcileLoginState()` 会把"DataStore 认为已登录、数据库却无有效凭据"的状态重置为未登录。
+
+**为什么不用 Room TypeConverter**：转换器按类型匹配，`String` 转换器会波及同实体的 `name`/`face`/`domain`/`path`；加密与解密同为 `String→String` 会被 KSP 判为冲突；字段级 `@TypeConverters` 被 Room 静默忽略。装饰 DAO 是唯一能在不改变业务代码与实体类型的前提下覆盖全部触点的位置。
+
+**迁移**：`MIGRATION_4_5` 清空存量明文凭据（token 置 NULL、Cookie 表清空），升级用户需重新登录。iOS 侧为明文直通，见 [已知问题与技术债](./known-issues.md) 的 D1。
 
 ## 为什么下载要拆三层
 

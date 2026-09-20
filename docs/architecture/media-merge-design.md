@@ -1,6 +1,6 @@
 # 媒体合并与 FFmpeg 设计
 
-本文档单独说明 BILIBILIAS 当前媒体合并设计，重点覆盖音视频合流、字幕嵌入、封面嵌入、容器选择、运行时并发和临时文件清理。内容以 `FfmpegMerger`、`FfmpegRuntimeConfig`、`SubtitleDownloader` 及 `NewDownloadManager` 的协作为准。
+本文档单独说明 BILIBILIAS 当前媒体合并设计，重点覆盖音视频合流、字幕嵌入、封面嵌入、容器选择、运行时并发和临时文件清理。内容以 `FfmpegMerger`、`DownloadRuntimePlatform`、`SubtitleDownloader` 及 `NewDownloadManager` 的协作为准。
 
 ## 为什么单独设计“合并层”
 
@@ -31,13 +31,15 @@
 - 执行 FFmpeg 会话
 - 在失败或取消时删除无效输出
 
-### `FfmpegRuntimeConfig`
+### `DownloadRuntimePlatform.applyFfmpegRuntimeConfig`
 
-文件：`app/src/main/java/com/imcys/bilibilias/download/FfmpegRuntimeConfig.kt`
+文件：`shared/src/androidMain/kotlin/com/imcys/bilibilias/shared/platform/runtime/DownloadRuntimePlatform.android.kt`
 
 职责：
 
-- 根据用户设置的下载并发和“是否允许并发合并”控制 FFmpegKit 并发上限
+- 根据用户设置的下载并发和“是否允许并发合并”控制 FFmpegKit 并发上限与会话历史上限
+
+这是 FFmpeg 并发的唯一设置入口（`app` 中曾有一份重复实现，已合并）。
 
 ### `SubtitleDownloader`
 
@@ -345,7 +347,7 @@ FFmpeg 并不会直接给出稳定百分比，因此当前实现会：
 
 ## 运行时并发控制
 
-`FfmpegRuntimeConfig.apply(maxConcurrentDownloads, enabledConcurrentMerge)` 会把 FFmpeg 异步并发上限设置为：
+`DownloadRuntimePlatform.applyFfmpegRuntimeConfig(maxConcurrentDownloads, enabledConcurrentMerge)` 会把 FFmpeg 异步并发上限与会话历史上限设置为：
 
 - 如果允许并发合并且下载并发数大于 1
   - 用下载并发数作为 FFmpeg 并发上限
@@ -447,7 +449,7 @@ FFmpeg 并不会直接给出稳定百分比，因此当前实现会：
 - 封面嵌入的流索引和 disposition
 - 取消时是否正确清理输出文件
 - 合并后是否正确删除临时字幕/封面/子任务文件
-- `FfmpegRuntimeConfig` 是否与下载并发逻辑一致
+- `DownloadRuntimePlatform.applyFfmpegRuntimeConfig` 是否与下载并发逻辑一致
 
 ## 建议验证场景
 

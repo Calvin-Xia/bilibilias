@@ -71,7 +71,28 @@ ABI：
 - release 构建启用 ABI split，产出每个 ABI 的拆分 APK，并额外生成 universal APK。
 - 不再包含 `armeabi-v7a`：纯 32 位 ARM 设备（部分老机型与电视盒子）将无法安装。恢复支持需要同时改回 `app/build.gradle.kts` 的 `abiFilters` 与 `splits` 两处。
 
-当前 `core/ffmpeg` 目录没有参与构建；实际打包使用的是 `app` 中直接声明的 `ffmpeg-kit` 依赖。
+实际打包使用的 FFmpeg 来自 `app` 直接声明的 `ffmpeg-kit` 依赖；早期保留的 `core/ffmpeg` 模块与其 `ffmpegVerification` 插件已删除。
+
+## 不要混跑 debug 与 release
+
+`app/build.gradle.kts` 用 `isDebugBuild` 决定是否启用 ABI split，而它的判断依据是**整条 Gradle 命令里出现的任务名**：
+
+```kotlin
+val isDebugBuild = gradle.startParameter.taskNames.any { it.contains("debug", ignoreCase = true) }
+```
+
+因此下面这条命令会把 release 也当作 debug 处理，**静默关闭 ABI split**，只产出 1 个 APK 而不是 3 个：
+
+```bash
+# 不要这样写
+./gradlew :app:assembleAlphaDebug :app:assembleAlphaRelease
+```
+
+需要 release 产物时单独执行：
+
+```bash
+./gradlew :app:assembleAlphaRelease
+```
 
 ## 常用命令
 
@@ -96,8 +117,12 @@ ABI：
 运行单元测试：
 
 ```bash
-./gradlew test
+./gradlew :core:common:testAndroidHostTest :core:network:testAndroidHostTest \
+  :core:database:testAndroidHostTest :shared:testAndroidHostTest \
+  :app:testAlphaDebugUnitTest
 ```
+
+`./gradlew test` 不覆盖 KMP 模块的用例（只有 `:app` 的会跑），`./gradlew check` 在 Windows 上会因 iOS klib 编译失败；原因与替代命令见 [测试与质量](../testing/testing.md)。
 
 运行 Android lint：
 

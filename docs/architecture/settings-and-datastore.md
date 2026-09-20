@@ -44,6 +44,10 @@ proto 定义位于：
 
 其中最关键的是 `AppSettingsSerializer`。它不仅负责序列化，还承担历史字段缺省值修复、非法值回填、默认容器格式兜底、并发下载配置修正等兼容逻辑。
 
+`DataStoreFactory` 为三份 store 都配置了 `ReplaceFileCorruptionHandler`：`.pb` 文件损坏时重置为各自的默认实例（`AppSettings` / `User` / `GooglePlaySettings` 的 `getDefaultInstance()`），而不是把 `CorruptionException` 抛给调用方。代价是损坏时的数据丢失是静默的——这是刻意的取舍，因为设置类数据影响可控，而设置页持续异常对用户更糟。
+
+**注意**：`User` proto 只保存当前用户 id 与少量账号开关，**不含** token 或 Cookie；凭据在 Room 中并由 DAO 边界加密，见 [数据库存储设计](./database-storage-design.md) 的"凭据加密"。
+
 ### `core:data`
 
 负责：
