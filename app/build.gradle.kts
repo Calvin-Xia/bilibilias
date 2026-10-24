@@ -40,7 +40,12 @@ android {
         buildConfigField("String","GITHUB_ORG",""""$githubOrg"""".trimIndent())
         buildConfigField("String","GITHUB_REPOSITORY",""""$githubRepository"""".trimIndent())
         ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            // AGP 8.11：splits.abi 启用且 isUniversalApk=false 时禁止设置 ndk.abiFilters（无条件冲突）。
+            // 因此 abiFilters 仅在 debug（splits 关闭）时设置，产出双 ABI 的 Universal 包；
+            // release 的 ABI 由 splits 单独约束，只出 arm64-v8a 拆分包。
+            if (isDebugBuild) {
+                abiFilters += listOf("arm64-v8a", "x86_64")
+            }
         }
     }
 
@@ -169,10 +174,11 @@ android {
 
     splits {
         abi {
-            isEnable = !isDebugBuild  // debug 时禁用，release 时启用
+            // release 只出 arm64-v8a（自用真机安装）；debug 任务名会禁用 splits，产出 Universal 包
+            isEnable = !isDebugBuild
             reset()
-            include("arm64-v8a", "x86_64")
-            isUniversalApk = true
+            include("arm64-v8a")
+            isUniversalApk = false
         }
     }
 

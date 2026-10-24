@@ -55,8 +55,7 @@
 - 开启资源裁剪
 - 写入 `ENABLED_PLAY_APP_MODE`
 - 写入 `ENABLED_ANALYTICS`
-- ABI split 开启
-- 生成 universal APK
+- ABI split 开启，只产出 arm64-v8a 拆分 APK（不生成 universal）
 
 ## 开关影响范围
 

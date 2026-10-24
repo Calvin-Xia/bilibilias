@@ -66,10 +66,10 @@ Build type：
 
 ABI：
 
-- 支持 `arm64-v8a` 与 `x86_64`，两者同时由 `ndk.abiFilters`（debug）和 `splits`（release）约束。
-- debug 构建禁用 ABI split，产出单个含上述两个 ABI 的 APK。
-- release 构建启用 ABI split，产出每个 ABI 的拆分 APK，并额外生成 universal APK。
-- 不再包含 `armeabi-v7a`：纯 32 位 ARM 设备（部分老机型与电视盒子）将无法安装。恢复支持需要同时改回 `app/build.gradle.kts` 的 `abiFilters` 与 `splits` 两处。
+- `ndk.abiFilters`（debug）与 `splits`（release）分别约束：`ndk.abiFilters` 含 `arm64-v8a` 与 `x86_64`，`splits` 只含 `arm64-v8a`。
+- debug 构建禁用 ABI split，产出单个含两个 ABI 的 **Universal** APK（测试/模拟器用）。
+- release 构建启用 ABI split，**只产出 arm64-v8a 拆分 APK**（真机安装用），不再生成 x86_64 与 universal；需要恢复时改 `app/build.gradle.kts` 的 `splits`。
+- 不再包含 `armeabi-v7a`：纯 32 位 ARM 设备（部分老机型与电视盒子）将无法安装。
 
 实际打包使用的 FFmpeg 来自 `app` 直接声明的 `ffmpeg-kit` 依赖；早期保留的 `core/ffmpeg` 模块与其 `ffmpegVerification` 插件已删除。
 
@@ -81,7 +81,7 @@ ABI：
 val isDebugBuild = gradle.startParameter.taskNames.any { it.contains("debug", ignoreCase = true) }
 ```
 
-因此下面这条命令会把 release 也当作 debug 处理，**静默关闭 ABI split**，只产出 1 个 APK 而不是 3 个：
+因此下面这条命令会把 release 也当作 debug 处理，**静默关闭 ABI split**，arm64 拆分 APK 退化为 Universal 包：
 
 ```bash
 # 不要这样写

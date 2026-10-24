@@ -58,7 +58,7 @@ BILIBILIAS 是第三方 B 站视频缓存工具，当前已停止公开发布 AP
 
 - `./gradlew test` **不覆盖 KMP 模块的测试**（`:core:common`、`:core:network`、`:core:database`、`:shared` 的用例注册在 `testAndroidHostTest`，只有 `:app` 的 3 个用例会跑）。跑全量用例请显式列出上面那组任务。
 - **不要用 `./gradlew check` 作为 Windows 上的门禁**：它会拉起 iOS 目标 klib 编译，而 `BILIBILIASDatabaseConstructor` 的 iOS actual 由 Room KSP 生成、在 Windows 上不产出，必然失败（已在 `main` 干净检出上复现，属既有问题）。改用上面的测试任务列表 + `./gradlew lint`。
-- `:app:assembleAlphaRelease` **必须单独执行**：`isDebugBuild` 会扫描同一命令里的所有任务名，与 debug 任务混跑会静默关闭 release 的 ABI split（3 个 APK 变成 1 个）。
+- `:app:assembleAlphaRelease` **必须单独执行**：`isDebugBuild` 会扫描同一命令里的所有任务名，与 debug 任务混跑会静默关闭 release 的 ABI split（arm64 拆分包退化为 Universal 包）。release 只产出 arm64-v8a 拆分 APK；debug 禁用 split、产出含双 ABI 的 Universal 包。
 - 验证命令的退出码要写文件后核对，不要接 `| tail`——管道会让 `tail` 的退出码覆盖真实结果。
 
 日常开发、测试打包和快速验证优先使用 `alpha` flavor。`official` 是最终正式发行渠道，只有发行前再使用。
