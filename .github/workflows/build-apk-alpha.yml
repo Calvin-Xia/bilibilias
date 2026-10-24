@@ -43,7 +43,19 @@ jobs:
           :shared:testAndroidHostTest
           :app:testAlphaDebugUnitTest
 
+      - name: Decode signing keystore
+        if: ${{ secrets.AS_KEYSTORE_BASE64 != '' }}
+        env:
+          AS_KEYSTORE_BASE64: ${{ secrets.AS_KEYSTORE_BASE64 }}
+        run: |
+          echo "$AS_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/as-release.jks"
+          echo "AS_KEYSTORE_FILE=$RUNNER_TEMP/as-release.jks" >> "$GITHUB_ENV"
+
       - name: Assemble alphaRelease
+        env:
+          AS_KEYSTORE_PASSWORD: ${{ secrets.AS_KEYSTORE_PASSWORD }}
+          AS_KEY_ALIAS: ${{ secrets.AS_KEY_ALIAS }}
+          AS_KEY_PASSWORD: ${{ secrets.AS_KEY_PASSWORD }}
         run: ./gradlew :app:assembleAlphaRelease --stacktrace --info
 
       - name: Upload APK

@@ -1,5 +1,6 @@
 import com.android.build.api.variant.BuildConfigField
 import com.imcys.bilibilias.buildlogic.BILIBILIASBuildType
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.bilibilias.android.application)
@@ -47,12 +48,71 @@ android {
         disable += "Instantiatable"
     }
 
+    // 统一自定义签名：本地从 local.properties 读，CI 从环境变量读；任一来源四要素齐全且文件存在即启用，
+    // 否则回退默认 debug 签名（构建永远可跑，只是产物签名不稳定）。
+    // 属性名：as.keystore.file / as.keystore.password / as.keystore.alias / as.keystore.key.password
+    // 环境变量：AS_KEYSTORE_FILE / AS_KEYSTORE_PASSWORD / AS_KEY_ALIAS / AS_KEY_PASSWORD
+    fun customSigningProperties(): Map<String, String> {
+        val fromLocal = runCatching {
+            Properties().apply {
+                rootProject.file("local.properties").inputStream().use { load(it) }
+            }
+        }.getOrNull()
+        fun pick(envKey: String, localKey: String): String =
+            System.getenv(envKey)?.takeIf { it.isNotBlank() }
+                ?: fromLocal?.getProperty(localKey)?.takeIf { it.isNotBlank() }
+                ?: ""
+        val fileProp = pick("AS_KEYSTORE_FILE", "as.keystore.file")
+        val storeFile = fileProp.takeIf { it.isNotBlank() }?.let { rootProject.file(it) }
+        return if (storeFile != null && storeFile.exists() &&
+            pick("AS_KEYSTORE_PASSWORD", "as.keystore.password").isNotBlank() &&
+            pick("AS_KEY_ALIAS", "as.keystore.alias").isNotBlank()
+        ) {
+            // key password 缺省时与 store password 相同（常见单口令 keystore）
+            mapOf(
+                "storeFile" to storeFile.absolutePath,
+                "storePassword" to pick("AS_KEYSTORE_PASSWORD", "as.keystore.password"),
+                "keyAlias" to pick("AS_KEY_ALIAS", "as.keystore.alias"),
+                "keyPassword" to pick("AS_KEY_PASSWORD", "as.keystore.key.password")
+                    .ifBlank { pick("AS_KEYSTORE_PASSWORD", "as.keystore.password") },
+            )
+        } else {
+            emptyMap()
+        }
+    }
+
+    val customSigning = customSigningProperties()
+
     signingConfigs {
         create("BILIBILIASSigningConfig") {
+            enableV1Signing = true
+            enableV2Signing = true
             enableV3Signing = true
             enableV4Signing = true
         }
+        if (customSigning.isNotEmpty()) {
+            create("custom") {
+                storeFile = file(customSigning.getValue("storeFile"))
+                storePassword = customSigning.getValue("storePassword")
+                keyAlias = customSigning.getValue("keyAlias")
+                keyPassword = customSigning.getValue("keyPassword")
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = true
+            }
+        }
     }
+
+    fun customSigningOrDebug() =
+        if (customSigning.isNotEmpty()) signingConfigs.getByName("custom")
+        else signingConfigs.getByName("debug")
+
+    logger.lifecycle(
+        "BILIBILIAS signing: {}",
+        if (customSigning.isEmpty()) "debug keystore (未配置自定义签名，产物签名将不稳定)"
+        else "custom keystore ${customSigning.getValue("storeFile")} [V1+V2+V3]"
+    )
 
     flavorDimensions += listOf("version")
     productFlavors {
@@ -70,23 +130,7 @@ android {
             versionNameSuffix = BILIBILIASBuildType.ALPHA.versionNameSuffix
             buildConfigField("boolean", "ENABLED_PLAY_APP_MODE", "false")
             resValue("string", "app_channel", "Alpha")
-            // 动态签名配置
-            val runnerTemp = System.getenv("RUNNER_TEMP")
-            signingConfig = if (runnerTemp != null && file("$runnerTemp/mxjs-debug.jks").exists()) {
-                // CI 环境
-                signingConfigs.create("ci-alpha").apply {
-                    storeFile = file("$runnerTemp/mxjs-debug.jks")
-                    storePassword = System.getenv("ALPHA_KEYSTORE_PASSWORD")
-                    keyAlias = System.getenv("ALPHA_KEY_ALIAS")
-                    keyPassword = System.getenv("ALPHA_KEY_PASSWORD")
-                    enableV3Signing = true
-                    enableV4Signing = true
-                }
-            } else {
-                // 本地环境
-                signingConfigs.getByName("debug")
-            }
-
+            signingConfig = customSigningOrDebug()
         }
 
         // 提交Google Play使用
@@ -114,6 +158,9 @@ android {
         }
 
         debug {
+            // flavor 级 signingConfig 会被 buildType 的默认 debug 签名覆盖，
+            // 这里显式接管，保证 alphaDebug 等本地日常构建也用统一的自定义签名
+            signingConfig = customSigningOrDebug()
             buildConfigField("boolean", "ENABLED_PLAY_APP_MODE", enabledPlayAppMode)
             buildConfigField("boolean", "ENABLED_ANALYTICS", enabledAnalytics)
         }
