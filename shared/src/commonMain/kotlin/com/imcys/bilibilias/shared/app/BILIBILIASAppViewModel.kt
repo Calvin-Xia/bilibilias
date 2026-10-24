@@ -78,10 +78,10 @@ class BILIBILIASAppViewModel(
         viewModelScope.launch {
             if (!usersDataSource.isLogin()) return@launch
             uiState.emit(UIState.AccountCheck(true))
-            // 检测可用B站账户
+            // 检测可用B站账户（不删除账号记录：-101 可能来自风控误判或瞬时失效，
+            // 保留凭据让用户可以重新登录或稍后重试，避免数据不可恢复地丢失）
             val oldCurrentUser = userInfoRepository.getBILIUserByUid(usersDataSource.getUserId())
             val oldMid = oldCurrentUser?.mid
-            userInfoRepository.deleteBILIUserByUid(usersDataSource.getUserId())
             val userList = userInfoRepository.getBILIUserListByMid(oldMid ?: 0)
             if (userList.isEmpty()) {
                 // 通知没找到合适的账户平台
