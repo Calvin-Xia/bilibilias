@@ -159,7 +159,7 @@ as.keystore.key.password=密钥口令   # 与商店口令相同时可省略
 
 配置后每次构建会打印 `BILIBILIAS signing: custom keystore ... [V1+V2+V3]`，回退时打印 debug 提示。
 
-CI（GitHub Actions）在仓库 Secrets 配置四个值：`AS_KEYSTORE_BASE64`（keystore 文件的 base64）、`AS_KEYSTORE_PASSWORD`、`AS_KEY_ALIAS`、`AS_KEY_PASSWORD`。workflow 会解码到临时目录并注入环境变量；Secrets 未配置时跳过该步，产物走 debug 签名。Windows 生成 base64：`certutil -encode keystore.jks out.txt` 后去掉首尾 BEGIN/END 行，或用 PowerShell `[Convert]::ToBase64String([IO.File]::ReadAllBytes("keystore.jks")) > out.txt`。
+CI（GitHub Actions）在仓库 Secrets 配置四个值：`AS_KEYSTORE_BASE64`（keystore 文件的 base64）、`AS_KEYSTORE_PASSWORD`、`AS_KEY_ALIAS`、`AS_KEY_PASSWORD`。workflow 会解码到临时目录并注入环境变量；Secrets 未配置时跳过该步，产物走 debug 签名。workflow **仅 `workflow_dispatch` 手动触发，且不上传 APK artifact**——公开仓库的 Actions 产物任何登录用户都可下载，等同公开分发安装包，与 README「已停止公开发布 APK」的合规口径冲突（上游即因 DMCA 归档）。Windows 生成 base64：`certutil -encode keystore.jks out.txt` 后去掉首尾 BEGIN/END 行，或用 PowerShell `[Convert]::ToBase64String([IO.File]::ReadAllBytes("keystore.jks")) > out.txt`。
 
 `official` 和 `beta` flavor 仍使用名为 `BILIBILIASSigningConfig` 的 signing config，仓库内没有硬编码 keystore，正式发行前需另行注入。
 

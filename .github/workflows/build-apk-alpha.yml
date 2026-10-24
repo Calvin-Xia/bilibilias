@@ -1,10 +1,8 @@
 name: Build Compose APK (Alpha)
 
+# 仅手动触发：上游因 DMCA 归档，本仓库保持"不公开发布 APK"的口径，
+# 不在每次 push 留下自动构建痕迹，也不上传任何可下载产物
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -63,8 +61,5 @@ jobs:
           AS_KEY_PASSWORD: ${{ secrets.AS_KEY_PASSWORD }}
         run: ./gradlew :app:assembleAlphaRelease --stacktrace --info
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: bilibilias-alpha-release
-          path: app/build/outputs/apk/alpha/release/*.apk
+      # 不上传 APK artifact：公开仓库的 Actions 产物任何登录用户都可下载，
+      # 等同于公开分发安装包，违反 README 的合规口径。构建仅用于验证可编译与签名。

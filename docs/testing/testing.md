@@ -102,7 +102,7 @@ Lint：
 
 ## CI 覆盖
 
-`.github/workflows/build-apk-alpha.yml` 在构建 APK 前会先运行上述 5 个测试任务，测试失败即中止构建。CI 目前**不运行 lint**；本地收尾的门禁是那组测试任务 + `./gradlew lint`（`check` 因 iOS klib 问题不可用）。
+`.github/workflows/build-apk-alpha.yml` 仅 `workflow_dispatch` 手动触发（不在 push 时自动运行、不上传产物），触发后在构建 APK 前会先运行上述 5 个测试任务，测试失败即中止构建。CI 目前**不运行 lint**；本地收尾的门禁是那组测试任务 + `./gradlew lint`（`check` 因 iOS klib 问题不可用）。
 
 ## 适合优先补测试的区域
 
