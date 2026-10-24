@@ -54,7 +54,7 @@ sdk.dir=C:/Users/<用户名>/AppData/Local/Android/Sdk
 Product flavor：
 
 - `official`：正式渠道，`app_channel=Official`。
-- `alpha`：带 applicationId/versionName suffix，本地默认使用 debug signing，CI 可读取 `RUNNER_TEMP` 下的 `mxjs-debug.jks`。
+- `alpha`：带 applicationId/versionName suffix，debug 与 release 统一走自定义签名（见下文「签名」），未配置凭据时回退 debug signing。
 - `beta`：Google Play 提交用途，`app_channel=Beta`。
 
 日常开发、测试打包和本地验证优先使用 `alpha`。`official` 是最终正式发行渠道，不作为默认测试变体。
@@ -146,9 +146,26 @@ val isDebugBuild = gradle.startParameter.taskNames.any { it.contains("debug", ig
 
 ## 签名
 
-`official` 和 `beta` flavor 使用名为 `BILIBILIASSigningConfig` 的 signing config，但仓库内没有硬编码 keystore。release 签名需要由本地或 CI 注入。
+`alpha` 的 debug 与 release、以及 `debug` buildType 统一走**自定义签名**：本地从 `local.properties` 读，CI 从环境变量读；两个来源都缺失时回退默认 debug keystore（构建可跑，但产物签名不稳定，换机器覆盖安装会失败）。签名方案显式启用 V1+V2+V3（V4 保持开启）。
+
+本地在 `local.properties`（不提交）中配置：
+
+```properties
+as.keystore.file=D:/path/to/keystore.jks
+as.keystore.password=商店口令
+as.keystore.alias=密钥别名
+as.keystore.key.password=密钥口令   # 与商店口令相同时可省略
+```
+
+配置后每次构建会打印 `BILIBILIAS signing: custom keystore ... [V1+V2+V3]`，回退时打印 debug 提示。
+
+CI（GitHub Actions）在仓库 Secrets 配置四个值：`AS_KEYSTORE_BASE64`（keystore 文件的 base64）、`AS_KEYSTORE_PASSWORD`、`AS_KEY_ALIAS`、`AS_KEY_PASSWORD`。workflow 会解码到临时目录并注入环境变量；Secrets 未配置时跳过该步，产物走 debug 签名。Windows 生成 base64：`certutil -encode keystore.jks out.txt` 后去掉首尾 BEGIN/END 行，或用 PowerShell `[Convert]::ToBase64String([IO.File]::ReadAllBytes("keystore.jks")) > out.txt`。
+
+`official` 和 `beta` flavor 仍使用名为 `BILIBILIASSigningConfig` 的 signing config，仓库内没有硬编码 keystore，正式发行前需另行注入。
 
 不要把 keystore、密码、个人证书、Play 上传凭据提交到仓库。
+
+**换签名的代价**：从 debug 签名包切换到自定义签名包（或反向）必须卸载重装，Android 会清除应用数据与 Keystore 里 `bilibilias_credential_cipher` 密钥，已保存的 B 站登录态会一并丢失，需要重新扫码登录一次。
 
 ## Firebase 与 Google Services
 

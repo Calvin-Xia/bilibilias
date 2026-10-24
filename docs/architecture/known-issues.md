@@ -172,6 +172,16 @@ Expected BILIBILIASDatabaseConstructor has no actual declaration in module <comm
 - `core/ksp-processor` 与 `@KoinNativeExport` 注解：注解全仓库无任何使用点，即使接入也不会产出代码
 - 连带清理的配置：`FFmpegVerificationConventionPlugin` 及其在 build-logic 的注册、版本目录的 `bilibilias-android-ffmpegVerification` / `ksp-api` / `kotlinpoet` 条目、`gradle.properties` 的 `as.ffmpeg.version`
 
+### D3. 已移除的上游私有服务依赖与本地校验提示（本轮）
+
+上游 `api.misakamoe.com` 已随原项目归档停用，本轮把对它的全部运行时依赖与配套 UI 一并移除，同时删除了只对"第三方篡改包传播"有意义的来源警告弹窗与签名未知横幅。完整背景与决定见 [ADR-0001](../adr/0001-remove-upstream-app-server-dependency.md)；同轮修复的登录态掉线问题（Cookie 回写、-101 温和失效）见 [ADR-0002](../adr/0002-login-credential-lifecycle.md)。
+
+已移除：首页 banner/更新/公告拉取（`HomeViewModel.initOldAppInfo`）、设置页"漫游服务"入口、工具页"捐助我们"入口、用户页冻结视频对话框、解析页充电加速信息拉取、下载行为上报（`DownloadTaskRepository.submitDownloadAnalytics`）、`RoamPlugin` 的安装与 `AppAPIService` 的 Koin 注册。
+
+保留为死代码（无调用方）：`AppAPIService`、`RoamPlugin`、`RoamScreen`/`RoamViewModel`、`DonateScreen`/`DonateViewModel`、`RoamRoute` 及其序列化注册，以及 proto 字段 `package_source_warning_skip_key`、`unknown_app_sign_warning_close_time`（proto 删字段有序号复用风险，仅删了 Kotlin 侧调用）。
+
+**遗留取舍**：`AsCookiesStorage.get()` 仍不做请求域名匹配、也不按过期时间过滤从数据库加载的 Cookie（Cookie 表没有 `expires` 列）。上游服务器断链后Cookie 外发面只剩 bilibili 域与下载客户端，风险可接受；若后续给 Cookie 表补 `expires` 列，应同时收口这两点。
+
 ## 相关文档
 
 - [构建与运行](../development/build-and-run.md)：环境要求与常用命令

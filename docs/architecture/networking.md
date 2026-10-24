@@ -11,7 +11,7 @@
 - `adapter`
   - 面向“返回体不符合 B 站标准 `BiliApiResponse` 结构”的接口，把第三方响应适配进统一请求结果模型。
 - `plugin`
-  - 面向跨请求能力的 Ktor 插件，例如 Referer/UA 修正、漫游域名替换、风险事件监听、Firebase 性能上报。
+  - 面向跨请求能力的 Ktor 插件，例如 Referer/UA 修正、风险事件监听、Firebase 性能上报。
 - `repository`
   - 面向 UI 或业务流程，把网络结果和数据库、DataStore、登录状态、平台选择组合起来。
 
@@ -52,7 +52,7 @@
 在网络链路里主要承担：
 
 - 登录用户、Token、Cookie 的持久化。
-- 解析平台、漫游、Buvid 等网络行为开关。
+- 解析平台、Buvid 等网络行为开关。
 - 风险控制、账号关联等本地状态支撑。
 
 ## `HttpClient` 分层
@@ -70,7 +70,6 @@
 - 安装 `SSE`
 - 安装业务插件：
   - `AutoBILIInfoPlugin`
-  - `RoamPlugin`
   - `RiskControlPlugin`
   - `FirebasePerfPlugin`
 - 安装：
@@ -83,7 +82,7 @@
 
 - Web API
 - TV API
-- 需要走 Cookie、签名、风控、漫游、性能埋点的业务请求
+- 需要走 Cookie、签名、风控、性能埋点的业务请求
 
 ### 2. `DownloadHttpClient`
 
@@ -91,7 +90,7 @@ Koin qualifier：`named("DownloadHttpClient")`
 
 这是专门给下载链路准备的“纯净”客户端，特点：
 
-- 不安装风控、漫游、Firebase 等业务插件。
+- 不安装风控、Firebase 等业务插件。
 - 超时时间更长：`60s`
 - 仍保留 Cookie 与基础请求重试。
 - 安装 `AutoBILIInfoPlugin`，确保 UA/Referer 行为与当前解析平台一致。
@@ -145,16 +144,9 @@ Koin qualifier：`named("CommonApiHttpClient")`
 - 新增 B 站 API 时，除非有非常明确的例外，不要在页面或 repository 层重复补默认 `Referer`。
 - 如果某个接口需要特殊头策略，优先评估是扩展插件白名单，还是在 service 层针对该接口单独设置。
 
-### `RoamPlugin`
+### `RoamPlugin`（已移除安装）
 
-职责：
-
-- 在配置启用时替换域名，例如把 `api.bilibili.com` 替换为漫游域名。
-- 依赖本地用户/设置数据决定是否生效。
-
-开发约定：
-
-- 新增直接写死完整 URL 的 B 站请求时，要确认不会绕过漫游插件的域名替换逻辑。
+`RoamPlugin` 依赖的上游漫游代理（`api.misakamoe.com`）已随原项目归档停用，客户端不再安装该插件，漫游相关设置入口与设置页一并移除。插件类本身保留在源码中供参考，决定记录见 [ADR-0001](../adr/0001-remove-upstream-app-server-dependency.md)。
 
 ### `RiskControlPlugin`
 
@@ -194,6 +186,9 @@ Koin qualifier：`named("CommonApiHttpClient")`
 - 根据 `UsersDataSource` 判断是否登录。
 - 当用户设置 `notUseBuvid3` 时，请求阶段过滤 `buvid3`。
 - 支持清空、更新、读取指定 Cookie 值。
+- 收到 bilibili 域（`bilibili.com` 及子域）的 `Set-Cookie` 后，防抖约 2 秒把内存中该用户的全部 bilibili 域 Cookie 全量回写数据库（经 `EncryptedBILIUserCookiesDao` 落盘）。无 `Expires` 的会话 Cookie 只保留在内存、不落库；已明确过期的 Cookie 直接丢弃。
+
+回写的原因：B 站会在响应中轮换登录 Cookie（如 `SESSDATA`）。旧实现里刷新值只存在内存，进程重启后退回数据库中登录时刻的旧值，服务端随即判定未登录（-101），这是"杀掉应用重开就要重新登录"的根因。决定记录见 [ADR-0002](../adr/0002-login-credential-lifecycle.md)。
 
 这意味着：
 
@@ -271,6 +266,7 @@ Koin qualifier：`named("CommonApiHttpClient")`
 
 - 登录失效和请求频繁已经是跨页面统一语义，不应由单个页面自己重新判断。
 - 若未来有新的全局错误语义，优先补到统一扩展或插件层。
+- `-101` 的消费端是 `BILIBILIASAppViewModel.accountLoginStateError()`：它只尝试切换到其他仍可用的已存账号、全部失效时重置登录标记，**不会删除账号记录与 Cookie**（-101 可能来自风控误判或瞬时失效，凭据保留给用户重新登录或稍后重试，见 [ADR-0002](../adr/0002-login-credential-lifecycle.md)）。
 
 ### `mapData`
 
@@ -328,9 +324,9 @@ repository 常通过 `mapData` 把网络模型转换成数据层模型。
 
 - 新增 TV/App 接口时，优先复用 `setAppParams()` 或类似封装，不要每个请求手写 `sign`。
 
-### `AppAPIService`
+### `AppAPIService`（已停用）
 
-负责应用自身配置或服务端能力，例如版本、公告、横幅等。
+类保留在源码中，但不再注册进 Koin，也没有任何调用方。它原本对接原作者私有服务器（`api.misakamoe.com`，提供版本、公告、横幅、捐助、漫游申请、冻结、下载行为上报等），该服务器已随原项目归档停用，全部入口已移除。背景与决定见 [ADR-0001](../adr/0001-remove-upstream-app-server-dependency.md)。
 
 ### `BgmAPIService` / `GithubAPIService`
 
@@ -552,7 +548,7 @@ repository 常通过 `mapData` 把网络模型转换成数据层模型。
 
 - 依赖当前登录平台切换 Web / TV 请求。
 - 需要从数据库取当前用户或 Cookie。
-- 需要读取 DataStore 设置决定解析平台、漫游、Buvid 等行为。
+- 需要读取 DataStore 设置决定解析平台、Buvid 等行为。
 - 需要把多个接口结果整合成一个页面模型。
 
 这些都应该在 repository。

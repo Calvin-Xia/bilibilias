@@ -23,6 +23,9 @@
   - [iOS 导入产物](./development/ios-artifacts.md)
 - `testing/`：测试策略、验证命令、质量约定和 schema 校验。
   - [测试与质量](./testing/testing.md)
+- `adr/`：重要架构与维护决策记录。
+  - [ADR-0001 移除上游私有服务器依赖](./adr/0001-remove-upstream-app-server-dependency.md)
+  - [ADR-0002 登录凭据生命周期：Cookie 回写与 -101 温和失效](./adr/0002-login-credential-lifecycle.md)
 
 新增文档时，优先放进已有主题目录；只有当一组文档已经形成稳定主题且数量持续增长时，才新增一级子目录。
 
@@ -47,6 +50,6 @@
 ## 维护原则
 
 - 本项目已经停止公开发布 APK，源码仍可用于学习和自行编译。
-- 下载、解析、漫游、统计、更新等能力涉及外部平台规则，改动时必须优先考虑合规、用户授权和失败降级。
+- 下载、解析、统计等能力涉及外部平台规则，改动时必须优先考虑合规、用户授权和失败降级。上游私有服务器（漫游、更新、捐助等）依赖已整体移除，见 [ADR-0001](./adr/0001-remove-upstream-app-server-dependency.md)。
 - 当前仓库已经采用多 module、version catalog 和 build-logic 约定插件；新增工程能力优先放入 `build-logic` 或合适的 `core:*` module。
 - 不要提交本地环境文件、签名文件或个人凭据。`local.properties`、`.gradle/`、构建产物等应保持未跟踪。

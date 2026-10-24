@@ -18,8 +18,8 @@
 
 - 日常开发、快速验证、测试打包首选
 - 带 `applicationIdSuffix` 和 `versionNameSuffix`
-- 本地默认使用 debug signing
-- 在 CI 中可读取 `RUNNER_TEMP/mxjs-debug.jks`
+- debug 与 release 统一走自定义签名（`local.properties` 或 CI 环境变量，见构建文档「签名」）
+- 未配置签名凭据时回退 debug signing，产物签名不稳定
 - `ENABLED_PLAY_APP_MODE` 被 flavor 固定写成 `false`
 
 结论：
