@@ -43,11 +43,16 @@ jobs:
           :shared:testAndroidHostTest
           :app:testAlphaDebugUnitTest
 
+      # secrets 上下文不能出现在 if: 表达式里（workflow 校验会直接失败），
+      # 因此用步骤内 shell 判空实现“未配置则跳过”
       - name: Decode signing keystore
-        if: ${{ secrets.AS_KEYSTORE_BASE64 != '' }}
         env:
           AS_KEYSTORE_BASE64: ${{ secrets.AS_KEYSTORE_BASE64 }}
         run: |
+          if [ -z "$AS_KEYSTORE_BASE64" ]; then
+            echo "AS_KEYSTORE_BASE64 未配置，跳过解码，构建将回退 debug 签名"
+            exit 0
+          fi
           echo "$AS_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/as-release.jks"
           echo "AS_KEYSTORE_FILE=$RUNNER_TEMP/as-release.jks" >> "$GITHUB_ENV"
 
