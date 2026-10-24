@@ -35,7 +35,6 @@ import com.imcys.bilibilias.network.model.video.BILIVideoLanguageItem
 import com.imcys.bilibilias.network.model.video.BILIVideoPlayerInfo
 import com.imcys.bilibilias.network.model.video.BILIVideoSupportFormat
 import com.imcys.bilibilias.network.model.video.SelectEpisodeType
-import com.imcys.bilibilias.network.service.AppAPIService
 import com.imcys.bilibilias.shared.platform.firebase.FirebaseExt
 import com.imcys.bilibilias.shared.platform.permission.hasStoragePermission
 import kotlinx.coroutines.Dispatchers
@@ -64,7 +63,6 @@ class AnalysisViewModel(
     private val userInfoRepository: UserInfoRepository,
     private val downloadManager: SharedDownloadManager,
     private val appSettingsRepository: AppSettingsRepository,
-    private val appAPIService: AppAPIService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AnalysisUIState())
@@ -169,10 +167,6 @@ class AnalysisViewModel(
         viewModelScope.launch {
             uiIntent.emit(intent)
         }
-    }
-
-    suspend fun loadBoostVideoInfo(): Result<AppOldCommonBean> {
-        return appAPIService.getAppOldBoostVideoInfo()
     }
 
     /**
@@ -701,11 +695,6 @@ class AnalysisViewModel(
             when (it.status) {
                 ApiStatus.SUCCESS -> {
                     FirebaseExt.logVideoParse(it.data?.bvid)
-                    // 检查充电
-                    if (it.data?.isUpowerExclusive == true) {
-                        val boostInfo = loadBoostVideoInfo()
-                        _boostVideoInfo.emit(boostInfo.getOrNull())
-                    }
                     asVideoPlayerInfo(it.data?.cid ?: 0, it.data?.bvid, it.data?.aid)
                     // 检查互动视频
                     if (it.data?.rights?.isSteinGate != 0L) {

@@ -17,7 +17,7 @@ val repositoryModule = module {
     single { RiskManagementRepository(get(), get()) }
     single { UserInfoRepository(get(), get(),  get(), get(), get()) }
     single { VideoInfoRepository(get(), get(),  get(),get(),get(),get()) }
-    single { DownloadTaskRepository(get (),get (),get (),get (),get (),get (),get ()) }
+    single { DownloadTaskRepository(get (),get (),get ()) }
     single { BgmRepository(get()) }
     single { GithubInfoRepository(get()) }
 }

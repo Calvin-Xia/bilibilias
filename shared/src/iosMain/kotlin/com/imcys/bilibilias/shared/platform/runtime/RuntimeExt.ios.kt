@@ -1,6 +1,5 @@
 package com.imcys.bilibilias.shared.platform.runtime
 
-import androidx.compose.runtime.Composable
 import platform.Foundation.NSBundle
 import platform.Foundation.NSCharacterSet
 import platform.Foundation.NSString
@@ -70,9 +69,6 @@ private fun Double.formatFixed(precision: Int): String {
     val fractionPart = (rounded % scale.toLong()).toString().padStart(precision, '0')
     return if (precision == 0) integerPart.toString() else "$integerPart.$fractionPart"
 }
-
-@Composable
-actual fun rememberAppSignature(): String? = null
 
 actual fun getAppVersion(): Pair<Long, String> {
     val bundle = NSBundle.mainBundle

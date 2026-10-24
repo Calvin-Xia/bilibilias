@@ -83,11 +83,9 @@ import com.imcys.bilibilias.shared.feature.setting.expand.SystemExpandRoute
 import com.imcys.bilibilias.shared.feature.setting.expand.SystemExpandScreen
 import com.imcys.bilibilias.shared.feature.setting.layout.LayoutTypesetRoute
 import com.imcys.bilibilias.shared.feature.setting.layout.LayoutTypesetScreen
-import com.imcys.bilibilias.shared.feature.setting.navigation.RoamRoute
 import com.imcys.bilibilias.shared.feature.setting.navigation.SettingRoute
 import com.imcys.bilibilias.shared.feature.setting.platform.ParsePlatformRoute
 import com.imcys.bilibilias.shared.feature.setting.platform.ParsePlatformScreen
-import com.imcys.bilibilias.shared.feature.setting.roam.RoamScreen
 import com.imcys.bilibilias.shared.feature.setting.storage.StorageManagementRoute
 import com.imcys.bilibilias.shared.feature.setting.storage.StorageManagementScreen
 import com.imcys.bilibilias.shared.feature.setting.version.AppVersionInfoRoute
@@ -96,8 +94,6 @@ import com.imcys.bilibilias.shared.feature.tools.calendar.CalendarRoute
 import com.imcys.bilibilias.shared.feature.tools.calendar.CalendarScreen
 import com.imcys.bilibilias.shared.feature.tools.calendar.detail.SubjectDetailRoute
 import com.imcys.bilibilias.shared.feature.tools.calendar.detail.SubjectDetailScreen
-import com.imcys.bilibilias.shared.feature.tools.donate.DonateRoute
-import com.imcys.bilibilias.shared.feature.tools.donate.DonateScreen
 import com.imcys.bilibilias.shared.feature.tools.parser.WebParserRoute
 import com.imcys.bilibilias.shared.feature.tools.parser.WebParserScreen
 import com.imcys.bilibilias.shared.feature.user.UserScreen
@@ -412,9 +408,6 @@ fun BILIBILAISNavDisplay() {
                     )
                 ) {
                     SettingScreen(
-                        onToRoam = {
-                            backStack.addWithReuse(RoamRoute)
-                        },
                         onToBack = onBack,
                         onToComplaint = { backStack.addWithReuse(ComplaintRoute) },
                         onToLayoutTypeset = { backStack.addWithReuse(LayoutTypesetRoute) },
@@ -433,21 +426,6 @@ fun BILIBILAISNavDisplay() {
                             }
                         },
                         onToPage = { backStack.addWithReuse(it) }
-                    )
-                }
-                entry<RoamRoute>(
-                    metadata = ListDetailSceneStrategy.detailPane()
-                ) {
-                    RoamScreen(
-                        onToBack = onBack,
-                        onGoToQRCodeLogin = {
-                            backStack.addWithReuse(
-                                QRCodeLoginRoute(
-                                    defaultLoginPlatform = it,
-                                    isFromRoam = true
-                                )
-                            )
-                        }
                     )
                 }
                 entry<PlayVoucherErrorRoute> {
@@ -530,11 +508,6 @@ fun BILIBILAISNavDisplay() {
                     }, onFinish = {
                         backStack.clear()
                         backStack.add(HomeRoute(isFormLogin = true))
-                    })
-                }
-                entry<DonateRoute> {
-                    DonateScreen(donateRoute = it, onToBack = {
-                        backStack.removeLastOrNullSafe()
                     })
                 }
                 entry<SystemExpandRoute>(

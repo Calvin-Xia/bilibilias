@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.automirrored.outlined.AirplaneTicket
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.outlined.Android
@@ -90,7 +89,6 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun SettingScreenPreview() {
     SettingScreen(
-        onToRoam = {},
         onToBack = {},
         onToComplaint = {},
         onToLayoutTypeset = {}
@@ -100,7 +98,6 @@ fun SettingScreenPreview() {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SettingScreen(
-    onToRoam: () -> Unit,
     onToComplaint: () -> Unit,
     onToLayoutTypeset: () -> Unit,
     onToBack: () -> Unit,
@@ -232,15 +229,6 @@ fun SettingScreen(
                     text = "解析平台",
                     descriptionText = "使用不同的平台标识来解析视频",
                     onClick = { onToPage(ParsePlatformRoute) }
-                )
-            }
-
-            item {
-                BaseSettingsItem(
-                    painter = rememberVectorPainter(Icons.AutoMirrored.Outlined.AirplaneTicket),
-                    text = "漫游服务",
-                    descriptionText = "可使视频解析流量出国",
-                    onClick = onToRoam
                 )
             }
 

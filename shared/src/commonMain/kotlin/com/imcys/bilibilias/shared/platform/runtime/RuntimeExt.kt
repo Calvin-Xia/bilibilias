@@ -1,7 +1,5 @@
 package com.imcys.bilibilias.shared.platform.runtime
 
-import androidx.compose.runtime.Composable
-
 /**
  * 跳转网页
  */
@@ -11,12 +9,6 @@ expect fun openLink(url: String): Boolean
  * 字符串模板
  */
 expect fun format(format: String, vararg args: Any?): String
-
-/**
- * 获取AppSignature
- */
-@Composable
-expect fun rememberAppSignature(): String?
 
 /**
  * 获取App版本

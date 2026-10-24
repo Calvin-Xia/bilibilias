@@ -102,7 +102,6 @@ import com.imcys.bilibilias.network.model.app.BulletinConfigInfo
 import com.imcys.bilibilias.shared.platform.component.PlatformBackHandler
 import com.imcys.bilibilias.shared.platform.runtime.getAppVersion
 import com.imcys.bilibilias.shared.platform.runtime.openLink
-import com.imcys.bilibilias.shared.platform.runtime.rememberAppSignature
 import com.imcys.bilibilias.shared.feature.analysis.navigation.AnalysisRoute
 import com.imcys.bilibilias.shared.feature.home.navigation.HomeRoute
 import com.imcys.bilibilias.ui.utils.rememberHeightSizeClass
@@ -116,7 +115,6 @@ import com.imcys.bilibilias.ui.component.ASTextButton
 import com.imcys.bilibilias.ui.component.ASTopAppBar
 import com.imcys.bilibilias.ui.component.BILIBILIASTopAppBarStyle
 import com.imcys.bilibilias.ui.component.SurfaceColorCard
-import com.imcys.bilibilias.ui.component.tip.ASWarringTip
 import com.imcys.bilibilias.ui.utils.DialogSortHost
 import com.imcys.bilibilias.shared.ui.component.ASLoginPlatformFilterChipRow
 import com.imcys.bilibilias.shared.ui.component.AsAutoError
@@ -127,8 +125,6 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.min
-import kotlin.time.Clock
-import kotlin.time.Instant
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -350,37 +346,6 @@ private fun HomeContent(
 
     var closeBulletinDialogShow by remember { mutableStateOf(false) }
     var bulletinDialogShow by remember { mutableStateOf(false) }
-    var unknownAppSign by remember { mutableStateOf(false) }
-    var packageSourceWarningDialogShow by remember { mutableStateOf(false) }
-    val shouldShowUnknownAppSignWarning =
-        remember(unknownAppSign, appSettings.unknownAppSignWarningCloseTime) {
-            val oneMonthAgo =
-                Clock.System.now() - HomeViewModel.UNKNOWN_APP_SIGN_WARNING_HIDE_DURATION_MS
-            unknownAppSign && Instant.fromEpochMilliseconds(appSettings.unknownAppSignWarningCloseTime) <= oneMonthAgo
-        }
-
-    val currentSHA1 = rememberAppSignature()
-    LaunchedEffect(currentSHA1) {
-        if (currentSHA1 == null || !checkSign(currentSHA1)) {
-            unknownAppSign = true
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        vm.initOldAppInfo()
-    }
-
-    val packageSourceWarningKey = remember { vm.getPackageSourceWarningKey() }
-
-    LaunchedEffect(packageSourceWarningKey, appSettings.packageSourceWarningSkipKey) {
-        if (
-            !uiState.shownPackageSourceWarningThisLaunch &&
-            appSettings.packageSourceWarningSkipKey != packageSourceWarningKey
-        ) {
-            packageSourceWarningDialogShow = true
-            vm.markPackageSourceWarningShownThisLaunch()
-        }
-    }
 
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         LazyColumn(
@@ -394,39 +359,6 @@ private fun HomeContent(
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (shouldShowUnknownAppSignWarning) {
-                item {
-                    ASWarringTip(
-                        Modifier
-                            .animateItem()
-                            .animateContentSize()
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = if (false) {
-                                    "当前App处于Debug模式，如果您并非开发人员，请谨慎使用。"
-                                } else {
-                                    "当前应用签名未知，请谨慎使用！"
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            ASIconButton(
-                                onClick = vm::closeUnknownAppSignWarning,
-                                modifier = Modifier.size(30.dp)
-                            ) {
-                                Icon(
-                                    Icons.Outlined.Close,
-                                    contentDescription = "关闭"
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
             homeLayoutTypesetList.forEach { layout ->
                 if (!layout.isHidden) {
                     when (layout.type) {
@@ -677,26 +609,7 @@ private fun HomeContent(
 
     DialogSortHost {
         dialog(
-            visible = packageSourceWarningDialogShow,
-            order = 0,
-            key = "package_source_warning"
-        ) {
-            PackageSourceWarningDialog(
-                onClickConfirm = {
-                    packageSourceWarningDialogShow = false
-                },
-                onClickSkipCurrentBuild = {
-                    vm.skipPackageSourceWarningForCurrentBuild()
-                    packageSourceWarningDialogShow = false
-                },
-                onDismiss = {
-                    packageSourceWarningDialogShow = false
-                }
-            )
-        }
-
-        dialog(
-            visible = !packageSourceWarningDialogShow,
+            visible = true,
             order = 1,
             key = "update_app"
         ) {
@@ -706,7 +619,7 @@ private fun HomeContent(
         }
 
         dialog(
-            visible = !packageSourceWarningDialogShow && closeBulletinDialogShow,
+            visible = closeBulletinDialogShow,
             order = 2,
             key = "close_bulletin"
         ) {
@@ -718,7 +631,7 @@ private fun HomeContent(
         }
 
         dialog(
-            visible = !packageSourceWarningDialogShow && bulletinDialogShow,
+            visible = bulletinDialogShow,
             order = 3,
             key = "bulletin"
         ) {
@@ -727,35 +640,6 @@ private fun HomeContent(
             })
         }
     }
-}
-
-@Composable
-private fun PackageSourceWarningDialog(
-    onClickConfirm: () -> Unit,
-    onClickSkipCurrentBuild: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    ASAlertDialog(
-        showState = true,
-        clickBlankDismiss = true,
-        title = { Text("注意") },
-        text = {
-            Text(
-                "该程序由非开源仓库开发者打包而来，这是因为本项目已经停止分发，正常情况下，你不可能在任何地方获得本项目开发者打包的安装包，除非你是学习本项目的开发者，否则你目前使用的APP有可能遭遇篡改。"
-            )
-        },
-        confirmButton = {
-            ASTextButton(onClick = onClickConfirm) {
-                Text(text = "确定")
-            }
-        },
-        dismissButton = {
-            ASTextButton(onClick = onClickSkipCurrentBuild) {
-                Text(text = "此版本不再提示")
-            }
-        },
-        onDismiss = onDismiss
-    )
 }
 
 @Composable
@@ -1183,16 +1067,4 @@ private fun LoginInfoBottomDialog(
             }
         }
     }
-}
-
-
-private fun checkSign(actual: String?): Boolean {
-    val officeSign = "8E:B3:80:FB:C0:32:86:98:5B:8F:86:59:B2:79:16:75:A0:AB:21:DB"
-    val officeAlphaSign = "7F:44:47:60:4B:BF:FB:A8:06:FD:13:DF:7F:E3:5D:AA:70:4B:D5:54"
-    return isSignatureSHA1Match(actual, officeSign) ||
-            isSignatureSHA1Match(actual, officeAlphaSign)
-}
-
-private fun isSignatureSHA1Match(actual: String?, expected: String): Boolean {
-    return actual?.equals(expected, ignoreCase = true) == true
 }

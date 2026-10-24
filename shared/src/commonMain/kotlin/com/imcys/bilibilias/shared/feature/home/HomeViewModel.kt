@@ -3,8 +3,6 @@ package com.imcys.bilibilias.shared.feature.home
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.imcys.bilibilias.common.data.CommonBuildConfig
-import com.imcys.bilibilias.common.event.sendToastEvent
 import com.imcys.bilibilias.data.model.BILILoginUserModel
 import com.imcys.bilibilias.data.repository.AppSettingsRepository
 import com.imcys.bilibilias.data.repository.QRCodeLoginRepository
@@ -23,8 +21,6 @@ import com.imcys.bilibilias.network.emptyNetWorkResult
 import com.imcys.bilibilias.network.model.app.AppUpdateConfigInfo
 import com.imcys.bilibilias.network.model.app.BannerConfigInfo
 import com.imcys.bilibilias.network.model.app.BulletinConfigInfo
-import com.imcys.bilibilias.network.service.AppAPIService
-import com.imcys.bilibilias.shared.platform.runtime.getAppVersion
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.sse.ClientSSESessionWithDeserialization
 import io.ktor.client.plugins.sse.deserialize
@@ -32,7 +28,6 @@ import io.ktor.client.plugins.sse.sse
 import io.ktor.sse.TypedServerSentEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,8 +35,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.days
 
 class HomeViewModel(
     private val httpClient: HttpClient,
@@ -49,20 +42,14 @@ class HomeViewModel(
     private val usersDataSource: UsersDataSource,
     private val riskManagementRepository: RiskManagementRepository,
     private val downloadManager: SharedDownloadManager,
-    private val appSettingsRepository: AppSettingsRepository,
-    private val appAPIService: AppAPIService
+    private val appSettingsRepository: AppSettingsRepository
 
 ) : ViewModel() {
-    companion object {
-        val UNKNOWN_APP_SIGN_WARNING_HIDE_DURATION_MS = 30.days
-    }
 
     @Immutable
     data class UIState(
         val fromLoginEventConsumed: Boolean = false,
-        val shownAppUpdate: Boolean = false,
-        val fetchedAppUpdateInfo: Boolean = false,
-        val shownPackageSourceWarningThisLaunch: Boolean = false
+        val shownAppUpdate: Boolean = false
     )
 
     val appSettings = appSettingsRepository.appSettingsFlow
@@ -127,68 +114,6 @@ class HomeViewModel(
                     showBILIUserInfo()
                 }
             }
-        }
-    }
-
-    fun initOldAppInfo() {
-        if (_uiState.value.fetchedAppUpdateInfo) return
-        _uiState.value = uiState.value.copy(fetchedAppUpdateInfo = true)
-        viewModelScope.launch(Dispatchers.IO) {
-            // 旧版捐助信息
-            val bannerInfo = async {
-                appAPIService.getAppOldBanner().onSuccess {
-                    _bannerList.value = it.textList.mapIndexed { index, string ->
-                        BannerConfigInfo(
-                            title = string,
-                            url = it.imgUrlList.getOrNull(index) ?: "",
-                            ref = it.dataList.getOrNull(index) ?: "",
-                            id = index,
-                            sort = index
-                        )
-                    }
-                }
-            }
-
-            val updateInfo = async {
-                appAPIService.getAppOldUpdateInfo(getAppVersion().second)
-                    .onSuccess {
-                        _appUpdateInfo.value = AppUpdateConfigInfo(
-                            id = 30,
-                            version = it.version,
-                            url = it.url,
-                            feat = it.gxnotice,
-                            fix = it.gxnotice,
-                            remark = "",
-                            forcedUpdate = true,
-                            publishDateTime = "最近"
-                        )
-
-                        _bulletinInfo.value = BulletinConfigInfo(
-                            id = 20,
-                            content = it.notice,
-                            publishDateTime = "最近"
-                        )
-                    }
-            }
-            bannerInfo.start()
-            updateInfo.start()
-
-
-        }
-    }
-
-    fun getPackageSourceWarningKey(): String {
-        return "${getAppVersion().second}+${CommonBuildConfig.gitCommitHash}"
-    }
-
-    fun markPackageSourceWarningShownThisLaunch() {
-        if (_uiState.value.shownPackageSourceWarningThisLaunch) return
-        _uiState.value = uiState.value.copy(shownPackageSourceWarningThisLaunch = true)
-    }
-
-    fun skipPackageSourceWarningForCurrentBuild() {
-        viewModelScope.launch(Dispatchers.IO) {
-            appSettingsRepository.updatePackageSourceWarningSkipKey(getPackageSourceWarningKey())
         }
     }
 
@@ -363,17 +288,6 @@ class HomeViewModel(
     fun updateUseToolRecord(tool: ToolInfo) {
         viewModelScope.launch {
             appSettingsRepository.updateUseToolRecord(tool.name)
-        }
-    }
-
-    fun closeUnknownAppSignWarning() {
-        viewModelScope.launch {
-            appSettingsRepository.updateUnknownAppSignWarningCloseTime(
-                Clock.System.now().toEpochMilliseconds()
-            )
-            sendToastEvent("一个月后将再次提醒您", "了解", onResult = {
-
-            })
         }
     }
 

@@ -131,18 +131,12 @@ internal fun UserScreen(
     val userStatInfoState by vm.userStatInfoState.collectAsStateWithLifecycle()
     val spaceArchiveInfoState by vm.spaceArchiveInfoState.collectAsStateWithLifecycle()
     val uiState by vm.uiState.collectAsStateWithLifecycle()
-    var showChooseFreezeDialog by remember { mutableStateOf(false) }
-    var showFreezeAllDialog by remember { mutableStateOf(false) }
-    var showFreezeSingleDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(userRoute.mid) {
         vm.getUserPageIno(userRoute.mid)
     }
 
-    // 入口按钮，弹出选择对话框
-    UserScaffold(onToBack, onToSettings,userRoute, onShowFreezeVideo = {
-        showChooseFreezeDialog = true
-    }) {
+    UserScaffold(onToBack, onToSettings, userRoute) {
         LazyVerticalGrid(
             GridCells.Fixed(2),
             Modifier
@@ -185,207 +179,8 @@ internal fun UserScreen(
 
         }
     }
-
-
-    // 选择冻结类型对话框
-    ChooseFreezeTypeDialog(
-        show = showChooseFreezeDialog,
-        onDismiss = { showChooseFreezeDialog = false },
-        onChooseAll = { showFreezeAllDialog = true },
-        onChooseSingle = { showFreezeSingleDialog = true }
-    )
-
-    // 冻结全部视频对话框
-    FreezeAllVideosDialog(showFreezeAllDialog, {
-        showFreezeAllDialog = false
-    }, vm::freezeUpAllVideo)
-
-    // 冻结单个视频对话框
-    FreezeSingleVideoDialog(showFreezeSingleDialog, {
-        showFreezeSingleDialog = false
-    }, vm::freezeSingleVideo)
 }
 
-
-@Composable
-fun ChooseFreezeTypeDialog(
-    show: Boolean,
-    onDismiss: () -> Unit,
-    onChooseAll: () -> Unit,
-    onChooseSingle: () -> Unit
-) {
-    ASAlertDialog(
-        title = { Text(stringResource(Res.string.user_select_freeze_method)) },
-        text = {
-            Column {
-                Text(stringResource(Res.string.user_freeze_notice))
-                Spacer(modifier = Modifier.height(8.dp))
-                Surface(
-                    shape = CardDefaults.shape,
-                    onClick = {
-                        onDismiss()
-                        onChooseAll()
-                    }
-                ) {
-                    Text(
-                        "冻结全部视频", modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Surface(
-                    shape = CardDefaults.shape,
-                    onClick = {
-                        onDismiss()
-                        onChooseSingle()
-                    }
-                ) {
-                    Text(
-                        "冻结某一个视频", modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp)
-                    )
-                }
-            }
-
-        },
-        showState = show,
-        onDismiss = onDismiss,
-        confirmButton = {
-            ASTextButton(onClick = {
-                onDismiss()
-            }) { Text("取消") }
-        }
-    )
-}
-
-/**
- * 冻结视频对话框
- */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-fun FreezeAllVideosDialog(
-    show: Boolean,
-    onDismiss: () -> Unit,
-    onFreezeAllVideo: suspend () -> Result<com.imcys.bilibilias.network.model.app.AppOldSoFreezeBean>
-) {
-    var isLoading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    ASAlertDialog(
-        title = { Text(stringResource(Res.string.user_freeze_all_videos)) },
-        icon = { Icon(Icons.Outlined.LocalPolice, contentDescription = "图标") },
-        text = {
-            AnimatedContent(isLoading) {
-                if (it) {
-                    Column(
-                        Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        CircularWavyProgressIndicator()
-                        Text(stringResource(Res.string.user_freezing_progress))
-                    }
-                } else {
-                    Text(stringResource(Res.string.user_freeze_all_confirm_message))
-                }
-            }
-        },
-        showState = show,
-        onDismiss = onDismiss,
-        confirmButton = {
-            ASTextButton(onClick = {
-                scope.launch(Dispatchers.IO) {
-                    isLoading = true
-                    val result = onFreezeAllVideo()
-                    val data = result.getOrNull()
-                    isLoading = false
-                    launch(Dispatchers.Main) {
-                        if (data?.code == 0) {
-                            onDismiss.invoke()
-                            sendToastEvent("冻结成功")
-                        } else {
-                            sendToastEvent( "冻结失败：${data?.msg}")
-                        }
-                    }
-
-                }
-            }) { Text("确定") }
-        },
-        dismissButton = {
-            ASTextButton(onClick = { onDismiss.invoke() }) { Text("取消") }
-        }
-    )
-}
-
-/**
- * 冻结单个视频对话框
- */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-fun FreezeSingleVideoDialog(
-    show: Boolean,
-    onDismiss: () -> Unit,
-    onFreezeSingleVideo: suspend (String) -> Result<com.imcys.bilibilias.network.model.app.AppOldSoFreezeBean>
-) {
-    var bvInput by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    ASAlertDialog(
-        title = { Text(stringResource(Res.string.user_freeze_video)) },
-        icon = { Icon(Icons.Outlined.LocalPolice, contentDescription = "图标") },
-        text = {
-            if (isLoading) {
-                Column(
-                    Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularWavyProgressIndicator()
-                    Text(stringResource(Res.string.user_freezing_progress))
-                }
-            } else {
-                Column {
-                    Text(stringResource(Res.string.user_input_bv_prompt))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    androidx.compose.material3.OutlinedTextField(
-                        value = bvInput,
-                        onValueChange = { bvInput = it },
-                        label = { Text(stringResource(Res.string.user_bv_number)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        },
-        showState = show,
-        onDismiss = onDismiss,
-        confirmButton = {
-            ASTextButton(onClick = {
-                val bv = bvInput.trim()
-                if (bv.isNotEmpty()) {
-                    scope.launch(Dispatchers.IO) {
-                        isLoading = true
-                        val result = onFreezeSingleVideo(bv)
-                        val data = result.getOrNull()
-                        isLoading = false
-                        launch(Dispatchers.Main) {
-                            if (data?.code == 0) {
-                                onDismiss.invoke()
-                                sendToastEvent("冻结成功")
-                            } else {
-                                sendToastEvent("冻结失败")
-                            }
-                        }
-                    }
-                } else {
-                    sendToastEventOnBlocking("请输入BV号")
-                }
-            }) { Text("确定") }
-        },
-        dismissButton = {
-            ASTextButton(onClick = { onDismiss.invoke() }) { Text("取消") }
-        }
-    )
-}
 
 @Composable
 private fun VideoCard(item: BILISpaceArchiveModel.Item?, onClick: () -> Unit = {}) {
@@ -838,7 +633,6 @@ private fun UserScaffold(
     onToBack: () -> Unit,
     onToSettings: () -> Unit,
     userRoute: UserRoute,
-    onShowFreezeVideo: () -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
@@ -857,11 +651,6 @@ private fun UserScaffold(
                         })
                     },
                     actions = {
-//                        if (!userRoute.isAnalysisUser){
-//                            ASIconButton(onClick = { onShowFreezeVideo.invoke() }) {
-//                                Icon(Icons.Outlined.LocalPolice, contentDescription = "冻结视频")
-//                            }
-//                        }
                         ASIconButton(onClick = {
                             onToSettings.invoke()
                         }) {

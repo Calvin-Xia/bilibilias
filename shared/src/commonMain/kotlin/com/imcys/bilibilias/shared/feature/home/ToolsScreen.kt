@@ -52,7 +52,6 @@ import bilibilias.shared.ASBuildConfig
 import bilibilias.shared.generated.resources.Res
 import bilibilias.shared.generated.resources.common_ok
 import bilibilias.shared.generated.resources.common_recommend
-import bilibilias.shared.generated.resources.ic_credit_card_heart_24px
 import bilibilias.shared.generated.resources.ic_github_24px
 import bilibilias.shared.generated.resources.ic_qq_24px
 import bilibilias.shared.generated.resources.ic_qq_channel_2px
@@ -69,7 +68,6 @@ import com.imcys.bilibilias.shared.platform.runtime.openLink
 import com.imcys.bilibilias.shared.platform.clipboard.setClipboardText
 import com.imcys.bilibilias.shared.feature.home.navigation.HomeRoute
 import com.imcys.bilibilias.shared.feature.tools.calendar.CalendarRoute
-import com.imcys.bilibilias.shared.feature.tools.donate.DonateRoute
 import com.imcys.bilibilias.shared.feature.tools.parser.WebParserRoute
 import com.imcys.bilibilias.ui.component.ASAlertDialog
 import com.imcys.bilibilias.ui.component.ASIconButton
@@ -125,13 +123,6 @@ enum class ToolInfo(
         icon = Icons.Outlined.BugReport,
         isScreen = false,
     ),
-    // 捐助我们
-    Donate(
-        title = "捐助我们",
-        desc = "☕请我们喝一杯奶茶吧！",
-        iconRes = Res.drawable.ic_credit_card_heart_24px,
-        navKey = DonateRoute
-    ),
 }
 
 @Composable
@@ -147,15 +138,9 @@ private fun ToolsContent(
         ToolInfo.Calendar,
         ToolInfo.WebParser,
     )
-    val otherTools = mutableListOf(
+    val otherTools = listOf(
         ToolInfo.Feedback
-    ).apply {
-        if (!ASBuildConfig.ENABLED_PLAY_APP_MODE) {
-            add(
-                ToolInfo.Donate
-            )
-        }
-    }
+    )
 
     // 点击工具处理
     fun clickTool(toolInfo: ToolInfo) {

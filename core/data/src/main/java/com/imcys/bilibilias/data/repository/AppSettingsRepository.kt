@@ -215,12 +215,6 @@ class AppSettingsRepository(
         }
     }
 
-    suspend fun updateUnknownAppSignWarningCloseTime(closeTime: Long) {
-        dataStore.updateData { currentSettings ->
-            currentSettings.copy(unknown_app_sign_warning_close_time = closeTime)
-        }
-    }
-
     suspend fun updateMaxConcurrentDownloads(maxConcurrentDownloads: Int) {
         dataStore.updateData { currentSettings ->
             currentSettings.copy(
@@ -235,12 +229,6 @@ class AppSettingsRepository(
             currentSettings.copy(
                 enabled_concurrent_merge = enabled && currentSettings.maxConcurrentDownloads > 1
             )
-        }
-    }
-
-    suspend fun updatePackageSourceWarningSkipKey(key: String) {
-        dataStore.updateData { currentSettings ->
-            currentSettings.copy(package_source_warning_skip_key = key)
         }
     }
 }
